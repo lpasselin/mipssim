@@ -22,7 +22,7 @@ import sys
 import os
 import re
 from src.trace import gestion_deverminage
-from src.interpreter import INSTRUCTION_SET, begin_memory_re, memory_re, memory_re_direct, registry_re
+from src.interpreteur import INSTRUCTION_SET, begin_memory_re, memory_re, memory_re_direct, registry_re
 
 
 class SimulationException(Exception):

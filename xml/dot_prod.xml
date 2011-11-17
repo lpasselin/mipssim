@@ -4,16 +4,13 @@
     <Store  number="2" latency="8"/>
     <ALU    number="2" latency="1"/>
     <Mult   number="2" latency_mul="8" latency_div="30"/>
+    <Add    number="2" latency="2"/>
   </FunctUnits>
   <Branch latency="1" spec_forward="nottaken" spec_backward="taken"/>
   <Registers>
-    <R1 value="0"/>
     <R2 value="0"/>
-    <R3 value="64"/>
-    <R4 value="1024"/>
     <R5 value="64"/>
     <R10 value="1536"/>
-    <R11 value="0"/>
     <R12 value="8"/>
   </Registers>
   <Memory size="256" type="float64">

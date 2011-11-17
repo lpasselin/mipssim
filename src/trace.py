@@ -22,7 +22,7 @@ import os
 import re
 
 from src.lib.prettytable import PrettyTable
-from src.interpreter import INSTRUCTION_SET, memory_re
+from src.interpreteur import INSTRUCTION_SET, memory_re
  
 
 class gestion_deverminage(object):
