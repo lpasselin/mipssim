@@ -1,0 +1,354 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Module de configuration &mdash; Simulateur MIPS - TP 2 v0.9 documentation</title>
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Simulateur MIPS - TP 2 v0.9 documentation" href="index.html" />
+    <link rel="next" title="Module de simulation" href="simulateur.html" />
+    <link rel="prev" title="Module d’interprétation" href="interpreteur.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="simulateur.html" title="Module de simulation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="interpreteur.html" title="Module d’interprétation"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-de-configuration">
+<h1>Module de configuration<a class="headerlink" href="#module-de-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="utilisation-du-module">
+<h2>Utilisation du module<a class="headerlink" href="#utilisation-du-module" title="Permalink to this headline">¶</a></h2>
+<p>Le module de configuration s&#8217;instancie avec le chemin de sa configuration en paramètre comme suit:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">src.configuration</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">mips_configuration</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Les fichiers de configurations sont en document XML pouvant prendre l&#8217;arborescence suivante:</p>
+<div class="highlight-python"><pre>&lt;MIPSSim&gt;
+  &lt;FunctUnits&gt;
+    &lt;Load   number="1" latency="2"/&gt;
+    &lt;Store  number="1" latency="4"/&gt;
+    &lt;Add    number="2" latency="2"/&gt;
+    &lt;Mult   number="2" latency="2"/&gt;
+    &lt;ALU    number="2" latency="1"/&gt;
+    &lt;Branch number="1" latency="1" spec_forward="nottaken" spec_backward="taken"/&gt;
+  &lt;/FunctUnits&gt;
+  &lt;Registers&gt;
+    &lt;R1 value="1"/&gt;
+    &lt;R2 value="2"/&gt;
+    &lt;F2 value="3.0"/&gt;
+  &lt;/Registers&gt;
+  &lt;Memory size="24"&gt;
+    1.0 1.2 1.4 1.6 1.8 2.0 2.2 2.4 2.6 2.8 3.0 3.2 3.4 3.6 3.8 4.0 4.2 4.4 4.6 4.8 5.0 5.2 5.4 5.6
+  &lt;/Memory&gt;
+&lt;/MIPSSim&gt;</pre>
+</div>
+</div>
+<div class="section" id="acces-a-la-configuration-de-l-architecture-mips">
+<h2>Accès à la configuration de l&#8217;architecture MIPS<a class="headerlink" href="#acces-a-la-configuration-de-l-architecture-mips" title="Permalink to this headline">¶</a></h2>
+<p>Accès au <em>Program Counter</em>:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">config</span><span class="o">.</span><span class="n">PC</span>
+</pre></div>
+</div>
+<p>Exemples d&#8217;accès aux définitions des unités fonctionnelles:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Load&#39;</span><span class="p">]</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Store&#39;</span><span class="p">]</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Add&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">execution_time</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Mult&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">execution_time_division</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;ALU&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">quantite</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Branch&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Accès aux unités fonctionnelles et à ses paramètres:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Load&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="c"># Le temps restant d&#39;exécution de la première unité fonctionnelle Load</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Store&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="c"># Booléen stipulant l&#39;utilisation de la deuxième unité fonctionnelle Store</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Add&#39;</span><span class="p">][</span><span class="mi">2</span><span class="p">][</span><span class="s">&#39;vj&#39;</span><span class="p">]</span>     <span class="c"># Valeur de la variable de Tomasulo Vj pour la troisième unité fonctionnelle Add</span>
+<span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Mult&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s">&#39;vk&#39;</span><span class="p">]</span>    <span class="c"># Valeur de la varaible de Tomasulo Vk pour la première unité fonctionnelle Mult</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="module-src.configuration">
+<span id="classes-et-membres-du-module-de-configuration"></span><h2>Classes et membres du module de configuration<a class="headerlink" href="#module-src.configuration" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="src.configuration.garantir_registre_valide">
+<tt class="descclassname">src.configuration.</tt><tt class="descname">garantir_registre_valide</tt><big>(</big><em>func</em><big>)</big><a class="headerlink" href="#src.configuration.garantir_registre_valide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Décorateur s&#8217;assurant que les registres accédés sont valides.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.mips_configuration">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">mips_configuration</tt><big>(</big><em>config_file=None</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classe définissant la configuration et l&#8217;état du MIPS simulé.
+Contient les états des unités fonctionnelles, des registres et de la mémoire.</p>
+<dl class="class">
+<dt id="src.configuration.mips_configuration.registre_definition">
+<em class="property">class </em><tt class="descname">registre_definition</tt><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.registre_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.registre_definition" title="Permalink to this definition">¶</a></dt>
+<dd><p>Système de registres du MIPS simulé.</p>
+<p>Exemples d&#8217;utilisation:</p>
+<ul class="simple">
+<li>print(config.registre[&#8216;R0&#8217;])</li>
+<li>config.registre[&#8216;R2&#8217;] = 5</li>
+<li>config.registre[&#8216;F2&#8217;] = 5.2</li>
+</ul>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.mips_configuration.unite_fonctionnelle_definition">
+<em class="property">class </em><tt class="descclassname">mips_configuration.</tt><tt class="descname">unite_fonctionnelle_definition</tt><big>(</big><em>in_architecture=&lt;class 'src.configuration.unite_tomasulo'&gt;</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.unite_fonctionnelle_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Unités fonctionnelles de l&#8217;émulateur MIPS.</p>
+<p>Chaque unité est une liste de la grandeur du nombre de ces unités fonctionnelles.
+Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
+<p>À l&#8217;intérieur de ces listes est l&#8217;information de la latence et l&#8217;état actuel des unités.</p>
+<p>Exemples d&#8217;utilisation:</p>
+</div></blockquote>
+<ul class="simple">
+<li>len(Load)               &lt;= Nombre d&#8217;unités fonctionnelles Load</li>
+<li>Load.latency            &lt;= Latence de l&#8217;unité de lecture</li>
+<li>Mult.latency_mul        &lt;= Latence de l&#8217;unité de multiplication</li>
+<li>Mult.latency_div        &lt;= Latence de l&#8217;unité de multiplication en division</li>
+<li>Branch.spec_forward     &lt;= Type de spéculation (boolean), si True, les jumps conditionnels plus loin que le pointeur actuel est supposé pris.</li>
+<li>Branch.spec_backward    &lt;= Type de spéculation (boolean), si True, les jumps conditionnels arrière (ie. boucles) seront supposé prises.</li>
+<li>Load[0][&#8216;status&#8217;]       &lt;= Temps restant à l&#8217;exécution de l&#8217;unité fonctionnelle [-1: non-utilisée, 0: terminé, 1+: en calcul]</li>
+<li>Store[0][&#8216;param1&#8217;]      &lt;= Premier paramètre de l&#8217;opération</li>
+<li>Mult[0][&#8216;param2&#8217;]       &lt;= Second paramètre de l&#8217;opération</li>
+</ul>
+<blockquote>
+<div>Références internes:</div></blockquote>
+<ul class="simple">
+<li>quantite = 0</li>
+<li>latency1 = 0</li>
+<li>latency2 = 0</li>
+<li>spec_forward = False</li>
+<li>spec_backward = False</li>
+<li>unite = []          # deviendra [{&#8216;status&#8217;:-1, &#8216;param1&#8217;:&#8217;&#8216;, &#8216;param2&#8217;:&#8217;&#8216;}, {&#8216;status&#8217;:-1, &#8216;param1&#8217;:&#8217;&#8216;, &#8216;param2&#8217;:&#8217;&#8216;}, ...]</li>
+</ul>
+<dl class="method">
+<dt id="src.configuration.mips_configuration.unite_fonctionnelle_definition.list">
+<tt class="descname">list</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.unite_fonctionnelle_definition.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition.list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retourne la liste des unités fonctionnelles présentes sur l&#8217;architecture.</p>
+</dd></dl>
+
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_branch">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_branch</tt><big>(</big><em>*args</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classe racine des unités fonctionnelles de branch.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_desc">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_desc</tt><big>(</big><em>in_architecture</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_desc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_desc" title="Permalink to this definition">¶</a></dt>
+<dd><blockquote>
+<div><p>Classe template de base des unités fonctionnelles.</p>
+<p>Contient:</p>
+</div></blockquote>
+<ul class="simple">
+<li>temps_execution</li>
+<li>temps_execution_division</li>
+<li>quantite</li>
+<li>Liste contenant les unités fonctionnelles (peut être appelée x[num])</li>
+</ul>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_fct">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_fct</tt><a class="reference internal" href="_modules/src/configuration.html#unite_fct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_fct" title="Permalink to this definition">¶</a></dt>
+<dd><p>Variables Tomasulo des unités fonctionnelles.</p>
+<p>Contient:</p>
+<ul class="simple">
+<li>temps</li>
+<li>addr</li>
+<li>op</li>
+<li>vj</li>
+<li>vk</li>
+<li>qj</li>
+<li>qk</li>
+</ul>
+<dl class="method">
+<dt id="src.configuration.unite_fct.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.values">
+<tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_lancement_multiple">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_lancement_multiple</tt><a class="headerlink" href="#src.configuration.unite_lancement_multiple" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.values">
+<tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_load">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_load</tt><big>(</big><em>in_architecture</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classe racine des unités fonctionnelles de load.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_math">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_math</tt><big>(</big><em>in_architecture</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_math"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_math" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classe racine des unités fonctionnelles mathématiques.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_store">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_store</tt><big>(</big><em>in_architecture</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_store"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_store" title="Permalink to this definition">¶</a></dt>
+<dd><p>Classe racine des unités fonctionnelles de store.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="src.configuration.unite_tomasulo">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_tomasulo</tt><a class="headerlink" href="#src.configuration.unite_tomasulo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ajoute la variable destination à l&#8217;unité fonctionnelle de base</p>
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo.values">
+<tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Module de configuration</a><ul>
+<li><a class="reference internal" href="#utilisation-du-module">Utilisation du module</a></li>
+<li><a class="reference internal" href="#acces-a-la-configuration-de-l-architecture-mips">Accès à la configuration de l&#8217;architecture MIPS</a></li>
+<li><a class="reference internal" href="#module-src.configuration">Classes et membres du module de configuration</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="interpreteur.html"
+                        title="previous chapter">Module d&#8217;interprétation</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="simulateur.html"
+                        title="next chapter">Module de simulation</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/configuration.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="simulateur.html" title="Module de simulation"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="interpreteur.html" title="Module d’interprétation"
+             >previous</a> |</li>
+        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Yannick Hold-Geoffroy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>

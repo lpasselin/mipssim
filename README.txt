@@ -1,0 +1,1 @@
+Voir doc/index.html pour la documentation
