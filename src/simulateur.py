@@ -137,9 +137,10 @@ l'exécution est terminée
             # Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre
             # opération qui changerait le même registre
             for b in list(zip(*self.config.ROB))[0]:
-                d = int("".join([e for e in list(b) if e.isdigit()]))
+                d = int("".join([e for e in list(b) if e.isdigit()]))-1
                 c = "".join([e for e in list(b) if not e.isdigit()])
                 unite = self.config.unite_fonctionnelle[c][d]
+                
                 # Arrêter si l'unité fonctionnelle actuellement analysée va réécrire ce registre
                 try:
                     if unite['op'][1][0].strip() == self.config.ROB[0][1][0].strip():
@@ -152,44 +153,45 @@ l'exécution est terminée
                 if unite['busy'] == True:
                     # Mettre à jour Qj/Qk pour Vj/Vk
                     # On essaie de trouver l'élément (registre/mémoire) dans Qj/Qk. S'il est trouvé, on l'évalue
-                    if unite['qj'] is not None and self.config.ROB[0][1][1].split("=")[0].strip() in unite['qj']:
+                    resultat = eval(self.config.ROB[0][1][0])
+                    if unite['qj'] is not None and self.config.ROB[0][0] in unite['qj']:
                         if begin_memory_re.match(unite['qj']) is not None:
-                            unite['vj'] = "%s(%s)" % (unite['qj'].split('(')[0], eval(unite['qj'].split('(', 1)[1].rstrip(" )")))
+                            unite['vj'] = "%s(%s)" % (unite['qj'].split('(')[0], resultat)
                         else:
-                            unite['vj'] = eval(unite['qj'])
+                            unite['vj'] = resultat
                         unite['qj'] = None
-                    if unite['qk'] is not None and self.config.ROB[0][1][1].split("=")[0].strip() in unite['qk']:
+                    if unite['qk'] is not None and self.config.ROB[0][0] in unite['qk']:
                         if begin_memory_re.match(unite['qk']) is not None:
-                            unite['vk'] = "%s(%s)" % (unite['qk'].split('(')[0], eval(unite['qk'].split('(', 1)[1].rstrip(" )")))
+                            unite['vk'] = "%s(%s)" % (unite['qk'].split('(')[0], resultat)
                         else:
-                            unite['vk'] = eval(unite['qk'])
+                            unite['vk'] = resultat
                         unite['qk'] = None
+                        
             
             # Quand une instruction est sanctionnée, s'assurer qu'elle n'écrit pas une valeur qui est encore dans le ROB comme fixe (ie. registre)
-            if self.config.ROB[0][1][1].split("=")[0].strip().find("self.config.registre") != -1:
+            if self.config.ROB[0][1][1].split("=")[0].strip().find("self.config.registre") != -1:                
                 exec(self.config.ROB[0][1][1].strip().replace("'] ", "T'] ", 1), architecture_proxy)
                 for a in self.config.ROB[1:]:
-                    # Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &cossin9
+                    # Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &cossin
                     if a[0][:6] != 'Branch' and a[0][:5] != 'Store':
                         if a[1] != None and a[1][1].split("=")[0].strip() == self.config.ROB[0][1][1].split("=")[0].strip():
                             exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(a[0])), architecture_proxy)
                             break
-                else:
-                    # Vérifier qu'aucune opération pending wants to write to this register
-                    for b in [a for a in self.config.unite_fonctionnelle.list() if a not in  ["Store", "Branch"]]:
-                        # Prendre une référence sur l'unité fonctionnelle qu'on analyse
-                        unite = self.config.unite_fonctionnelle[b] 
-                        for c in range(len(unite)):
-                            # Vérifier que l'unité est actuellement utilisé :
-                            if unite[c]['busy'] == True:
-                                if unite[c]['op'][1][0] == self.config.ROB[0][1][1].split("=")[0].strip().split(".")[-1]:
-                                    exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(b) + str(c)), architecture_proxy)
-                                    self = ldict['self']
+            else:
+                # Vérifier qu'aucune opération pending wants to write to this register
+                for b in [a for a in self.config.unite_fonctionnelle.list() if a not in  ["Store", "Branch"]]:
+                    # Prendre une référence sur l'unité fonctionnelle qu'on analyse
+                    unite = self.config.unite_fonctionnelle[b] 
+                    for c in range(len(unite)):
+                        # Vérifier que l'unité est actuellement utilisé :
+                        if unite[c]['busy'] == True:
+                            if unite[c]['op'][1][0] == self.config.ROB[0][1][1].split("=")[0].strip().split(".")[-1]:
+                                exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(b) + str(c)), architecture_proxy)
+                                self = ldict['self']
                                     
             # Gestion des branchs lors du sanctionnement
             if self.config.ROB[0][0][:6] == 'Branch':     
                 self.stall = False
-                
                 
                 if (self.new_pc != None and self.config.ROB[0][2] == False) or (self.new_pc == None and self.config.ROB[0][2] == True):
                     # Mauvaise spéculation
@@ -340,14 +342,14 @@ l'exécution est terminée
                     else:
                         # Si on passe de 0 à -1, l'unité redevient available et le résultat est écrit (Write de Tomasulo)
                         if unite[b]['temps'] < 1:
-                            self.unite_sanctionnement_now.append(a+str(b))
+                            self.unite_sanctionnement_now.append(a+str(b+1))
                             # Prêt au sanctionnement
                             retour = self.exec_tomasulo(unite[b])
                             # Reset de l'unité fonctionnelle
                             unite[b].reset()
                             # Modifier l'information dans le ROB. Trouver et mettre à jour l'élément [1] du ROB avec retour
                             for index, c in reversed([(index, i) for index, i in enumerate(self.config.ROB)]):
-                                if c[0] == a + str(b):
+                                if c[0] == a + str(b+1):
                                     self.config.ROB[index][1] = retour
                                     break
                         # Sinon, simplement la décrémenter de 1
@@ -370,7 +372,7 @@ l'exécution est terminée
         # Attribuer l'opération à une station de réservation si possible
         if unite_index != None:
             # Ajouter l'info au ROB
-            self.config.ROB.append([self.interpreter.flow[self.config.PC][0][0] + str(unite_index), None])
+            self.config.ROB.append([self.interpreter.flow[self.config.PC][0][0] + str(unite_index+1), None])
             # Attribuer les variables de Tomasulo
             ref_unite_fct[unite_index]['busy'] = True
             ref_unite_fct[unite_index]['temps'] = None
@@ -396,9 +398,9 @@ l'exécution est terminée
             for param_index, a in enumerate(to_check):
                 if len(self.interpreter.flow[self.config.PC][1]) < a + 1:
                     continue
-                param = self.interpreter.flow[self.config.PC][1][a]
+                param = self.interpreter.flow[self.config.PC][1][a]                
                 
-                # On résoud la référence
+                # On résout la référence
                 temp = self.resolve_variables(param, False)
                 
                 # Est-ce que on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk
@@ -407,26 +409,24 @@ l'exécution est terminée
                     # Ne pas résoudre les accès mémoire en ce moment
                     if memory_re.match(param) is not None:
                         valeur = "%s(%s)" % (temp.split('(')[0], eval(temp.split('(', 1)[1].rstrip(" )")))
-                    # Support pour instructions Load et Store de format Rx(Ry) -- trop de trouble pour le moment.
-                    #elif memory_re_double_reg.match(param) is not None:
-                    #    valeur = "%s(%s)" % (eval(temp.split('(')[0]), eval(temp.split('(', 1)[1].rstrip(" )")))
                     else:
                         valeur = eval(temp)
-                        
                 except BaseException as e:
                     # RAISE ERROR
                     print("Erreur lors de l'execution: %s - %s" % (temp, e))
                 
                 if premier == True:
                     if isinstance(valeur, str) and '&' in valeur:
-                        ref_unite_fct[unite_index]['qj'] = temp
+                        #Utiliser la valeur de format '&UNITE_FCT' plutôt 
+                        #que le numéro de registre directement
+                        ref_unite_fct[unite_index]['qj'] = valeur
                         ref_unite_fct[unite_index]['vj'] = None
                     else:
                         ref_unite_fct[unite_index]['qj'] = None
                         ref_unite_fct[unite_index]['vj'] = valeur
                 else:
                     if isinstance(valeur, str) and '&' in valeur:
-                        ref_unite_fct[unite_index]['qk'] = temp
+                        ref_unite_fct[unite_index]['qk'] = valeur
                         ref_unite_fct[unite_index]['vk'] = None
                     else:
                         ref_unite_fct[unite_index]['qk'] = None
@@ -452,7 +452,8 @@ l'exécution est terminée
 
             # Mettre une référence dans la destination, soit &Unite_name
             if destination is not None and destination is not []:
-                destination_value = '&' + self.interpreter.flow[self.config.PC][0][0] + str(unite_index)
+                #Utiliser une notation débutant à 1.
+                destination_value = '&' + self.interpreter.flow[self.config.PC][0][0] + str(unite_index+1)
                 self.config.registre[self.interpreter.flow[self.config.PC][1][destination]] = destination_value
 
             # Passer à l'opération suivante s'il n'y a pas de branch qui s'est déjà effectué
@@ -477,7 +478,8 @@ l'exécution est terminée
 
     def find_unite_fct(self, unite, nom_unite):
         for index, a in enumerate(unite):
-            if a['busy'] == False and nom_unite + str(index) not in self.unite_sanctionnement_now:
+            str_unite = nom_unite + str(index+1)
+            if a['busy'] == False and str_unite not in self.unite_sanctionnement_now and len(filter(lambda r: r[0] == str_unite, self.config.ROB)) == 0:
                 return index 
         else:
             return None

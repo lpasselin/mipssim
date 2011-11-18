@@ -79,7 +79,7 @@ class gestion_deverminage(object):
                     qj_back = station_number["qj"]
                     if isinstance(qj_back, str) is True and qj_back[0] == "&":
                         unite = "".join([a for a in qj_back if not a.isdigit()])
-                        nouvelle = int("".join([a for a in qj_back if a.isdigit()])) + 1
+                        nouvelle = int("".join([a for a in qj_back if a.isdigit()]))
                         qj_back = unite + str(nouvelle)
                     qj_back = qj_back\
                           .replace("self.config.registre['", "")\
@@ -92,7 +92,7 @@ class gestion_deverminage(object):
                     qk_back = station_number["qk"]
                     if isinstance(qk_back, str) is True and qk_back[0] == "&":
                         unite = "".join([a for a in qk_back if not a.isdigit()])
-                        nouvelle = int("".join([a for a in qk_back if a.isdigit()])) + 1
+                        nouvelle = int("".join([a for a in qk_back if a.isdigit()]))
                         qk_back = unite + str(nouvelle)
                     qk_back = qk_back\
                           .replace("self.config.registre['", "")\
@@ -124,9 +124,9 @@ class gestion_deverminage(object):
         # ROB sous format table
         show_ROB = PrettyTable(["#", "Ocp.", "Unité fct.", "Cible", "Valeur"])
         for index, elem in enumerate(configuration.ROB):
-            station_name = "".join([a for a in elem[0] if not a.isdigit()] + [str(int("".join([a for a in elem[0] if a.isdigit()])) + 1)])
+            station_name = "".join([a for a in elem[0] if not a.isdigit()] + [str(int("".join([a for a in elem[0] if a.isdigit()])))])
             num_unite_fct = int("".join([str(int("".join([a for a in elem[0] if a.isdigit()])))]))
-            unite_fct = configuration.unite_fonctionnelle["".join([a for a in elem[0] if not a.isdigit()])][num_unite_fct]
+            unite_fct = configuration.unite_fonctionnelle["".join([a for a in elem[0] if not a.isdigit()])][num_unite_fct-1]
             show_ROB.add_row([index,
                               noneify(unite_fct['busy']),
                               station_name,
