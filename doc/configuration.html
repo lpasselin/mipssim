@@ -114,7 +114,7 @@
 
 <dl class="class">
 <dt id="src.configuration.mips_configuration">
-<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">mips_configuration</tt><big>(</big><em>config_file=None</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">mips_configuration</tt><big>(</big><em>in_config_file=None</em>, <em>in_architecture=&lt;class 'src.configuration.unite_tomasulo_speculation'&gt;</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration" title="Permalink to this definition">¶</a></dt>
 <dd><p>Classe définissant la configuration et l&#8217;état du MIPS simulé.
 Contient les états des unités fonctionnelles, des registres et de la mémoire.</p>
 <dl class="class">
@@ -131,7 +131,7 @@ Contient les états des unités fonctionnelles, des registres et de la mémoire.
 
 <dl class="class">
 <dt id="src.configuration.mips_configuration.unite_fonctionnelle_definition">
-<em class="property">class </em><tt class="descclassname">mips_configuration.</tt><tt class="descname">unite_fonctionnelle_definition</tt><big>(</big><em>in_architecture=&lt;class 'src.configuration.unite_tomasulo'&gt;</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.unite_fonctionnelle_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">mips_configuration.</tt><tt class="descname">unite_fonctionnelle_definition</tt><big>(</big><em>in_architecture</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.unite_fonctionnelle_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition" title="Permalink to this definition">¶</a></dt>
 <dd><blockquote>
 <div><p>Unités fonctionnelles de l&#8217;émulateur MIPS.</p>
 <p>Chaque unité est une liste de la grandeur du nombre de ces unités fonctionnelles.
@@ -261,22 +261,22 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="src.configuration.unite_tomasulo">
-<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_tomasulo</tt><a class="headerlink" href="#src.configuration.unite_tomasulo" title="Permalink to this definition">¶</a></dt>
+<dt id="src.configuration.unite_tomasulo_speculation">
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_tomasulo_speculation</tt><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ajoute la variable destination à l&#8217;unité fonctionnelle de base</p>
 <dl class="method">
-<dt id="src.configuration.unite_tomasulo.keys">
-<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.keys" title="Permalink to this definition">¶</a></dt>
+<dt id="src.configuration.unite_tomasulo_speculation.keys">
+<tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="src.configuration.unite_tomasulo.reset">
-<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.reset" title="Permalink to this definition">¶</a></dt>
+<dt id="src.configuration.unite_tomasulo_speculation.reset">
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.reset" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="src.configuration.unite_tomasulo.values">
-<tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo.values" title="Permalink to this definition">¶</a></dt>
+<dt id="src.configuration.unite_tomasulo_speculation.values">
+<tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.values" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

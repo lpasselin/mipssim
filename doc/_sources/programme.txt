@@ -1,0 +1,38 @@
+﻿Utilisation du programme de simulation d'architecture MIPS 64 bits
+==================================================================
+
+Démarrage du programme
+----------------------
+
+Ce simulateur d'architecture MIPS 64 bits est développé pour fonctionner
+sous Python 3.
+Vous pouvez le démarrer de la façon suivante dans un terminal::
+
+    python3 ./mipssim.py [-d] [-h] <configuration> <assembleur> <trace>
+    
+Par exemple, pour faire exécuter le code loop2.mips avec la configuration adéquate, tapez la commande suivante::
+
+    python3 ./mipssim.py xml/loop.xml mips/loop2.mips trace.txt
+
+Paramètres supportés
+~~~~~~~~~~~~~~~~~~~~
+
+Les drapeaux ''-d'' et ''-h'' sont supportés par le simulateur.
+
+Le drapeau ''-d'' permet d'entrer en mode *debug* afin que le simulateur 
+produire un flot de sortie comprenant toutes les opérations qu'il effectue
+à chaque coup d'horloge.
+
+Le drapeau ''-h'' affiche l'aide du simulateur, soit un exemple d'utilisation.
+
+Deux paramètres sont obligatoires, soit un chemin vers un fichier de
+configuration et un chemin . Voir la documentation sur la configuration pour plus
+d'informations.
+
+Classes et membres du module principal
+--------------------------------------
+
+.. automodule:: mipssim
+    :members:
+    :undoc-members:
+    :inherited-members:
