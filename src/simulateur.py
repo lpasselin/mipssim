@@ -479,7 +479,7 @@ l'exécution est terminée
     def find_unite_fct(self, unite, nom_unite):
         for index, a in enumerate(unite):
             str_unite = nom_unite + str(index+1)
-            if a['busy'] == False and str_unite not in self.unite_sanctionnement_now and len(filter(lambda r: r[0] == str_unite, self.config.ROB)) == 0:
+            if a['busy'] == False and str_unite not in self.unite_sanctionnement_now and len(list(filter(lambda r: r[0] == str_unite, self.config.ROB))) == 0:
                 return index 
         else:
             return None

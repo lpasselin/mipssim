@@ -29,7 +29,7 @@ if sys.version_info < (2,7):
     sys.exit(1)
 
 from src.configuration import *
-from src.interpreter import *
+from src.interpreteur import *
 from src.simulateur import *
 
 import getopt
