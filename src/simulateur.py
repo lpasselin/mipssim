@@ -456,10 +456,6 @@ l'exécution est terminée
                     # RAISE ERROR
                     print("Erreur lors de l'execution: %s - %s" % (temp, e))
                 
-                #from IPython.Shell import IPShellEmbed
-                #ipshell = IPShellEmbed()
-                #ipshell() # this call anywhere in your program will start IPython
-                
                 if premier == True:
                     if isinstance(valeur, str) and '&' in valeur:
                         #Utiliser la valeur de format '&UNITE_FCT' plutôt 
