@@ -132,6 +132,7 @@ l'exécution est terminée
             if self.verbose:
                 print("Execution: %s" % self.config.ROB[0][1][1])
             architecture_proxy = {'self': self}
+            
             exec(self.config.ROB[0][1][1], architecture_proxy)
             
             # Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre
@@ -342,9 +343,12 @@ l'exécution est terminée
                     else:
                         # Si on passe de 0 à -1, l'unité redevient available et le résultat est écrit (Write de Tomasulo)
                         if unite[b]['temps'] < 1:
-                            self.unite_sanctionnement_now.append(a+str(b+1))
+                            nom_unite = a+str(b+1)
+                            self.unite_sanctionnement_now.append(nom_unite)
+                            
                             # Prêt au sanctionnement
                             retour = self.exec_tomasulo(unite[b])
+
                             # Reset de l'unité fonctionnelle
                             unite[b].reset()
                             # Modifier l'information dans le ROB. Trouver et mettre à jour l'élément [1] du ROB avec retour
@@ -352,6 +356,26 @@ l'exécution est terminée
                                 if c[0] == a + str(b+1):
                                     self.config.ROB[index][1] = retour
                                     break
+                            
+                            retour = eval(retour[0])
+                            # Writeback Tomasulo, écriture de l'instruction sur le CDB et mise à jour des stations de réservation
+                            for n in self.config.unite_fonctionnelle.list():
+                                uf = self.config.unite_fonctionnelle[n]
+                                for i in range(len(uf)):
+                                    # Mise à jour requise uniquement lorsque l'unité est occupée et attend après ses paramètres.
+                                    if uf[i]['busy'] and uf[i]['temps'] == None:
+                                        if uf[i]['qj'] is not None and uf[i]['qj'].find(nom_unite) != -1:
+                                            if begin_memory_re.match(uf[i]['qj']) is not None:
+                                                uf[i]['vj'] = "%s(%s)" % (uf[i]['qj'].split('(')[0], retour)
+                                            else:
+                                                uf[i]['vj'] = retour
+                                            uf[i]['qj'] = None
+                                        if uf[i]['qk'] is not None and uf[i]['qk'].find(nom_unite) != -1:
+                                            if begin_memory_re.match(uf[i]['qk']) is not None:
+                                                uf[i]['vk'] = "%s(%s)" % (uf[i]['qk'].split('(')[0], retour)
+                                            else:
+                                                uf[i]['vk'] = retour
+                                            uf[i]['qk'] = None
                         # Sinon, simplement la décrémenter de 1
                         else:
                             unite[b]['temps'] -= 1
@@ -408,12 +432,33 @@ l'exécution est terminée
                 try:
                     # Ne pas résoudre les accès mémoire en ce moment
                     if memory_re.match(param) is not None:
-                        valeur = "%s(%s)" % (temp.split('(')[0], eval(temp.split('(', 1)[1].rstrip(" )")))
+                        uf = eval(temp.split('(', 1)[1].rstrip(" )"))
                     else:
-                        valeur = eval(temp)
+                        uf = eval(temp)
+                    
+                    numeric = False
+                    if isinstance(uf, str) and '&' in uf:
+                        rob = list(zip(*self.config.ROB))[0]
+                        if uf[1:] in rob and self.config.ROB[rob.index(uf[1:])][1] is not None:
+                            numeric = True
+                            numeric_val = eval(self.config.ROB[rob.index(uf[1:])][1][0])                    
+                            if memory_re.match(param) is not None:
+                                valeur = "%s(%s)" % (temp.split('(')[0], numeric_val)
+                            else:
+                                valeur = numeric_val
+                                
+                    if not numeric:
+                        if memory_re.match(param) is not None:
+                            valeur = "%s(%s)" % (temp.split('(')[0], uf)
+                        else:
+                            valeur = uf
                 except BaseException as e:
                     # RAISE ERROR
                     print("Erreur lors de l'execution: %s - %s" % (temp, e))
+                
+                #from IPython.Shell import IPShellEmbed
+                #ipshell = IPShellEmbed()
+                #ipshell() # this call anywhere in your program will start IPython
                 
                 if premier == True:
                     if isinstance(valeur, str) and '&' in valeur:
