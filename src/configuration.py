@@ -411,7 +411,7 @@ class mips_configuration(object):
         except:
             self.unite_fonctionnelle['Branch'].temps_execution = 1
         try:
-            self.unite_fonctionnelle['Branch'].spec_forward = int(xml_data.getElementsByTagName("Branch")[0]._attrs['spec_forward'].value).lower() == 'taken'
+            self.unite_fonctionnelle['Branch'].spec_forward = (xml_data.getElementsByTagName("Branch")[0]._attrs['spec_forward'].value).lower() == 'taken'
         except:
             self.unite_fonctionnelle['Branch'].spec_forward = False
         try:
