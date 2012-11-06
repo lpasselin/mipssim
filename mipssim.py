@@ -19,9 +19,16 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+"""
+Simulateur d'architecture MIPS 64 bits
+
+Auteurs : Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel
+Maintenance : Julien-Charles Lévesque
+"""
+
 # Operation warning
 import sys
-if sys.version_info < (2,7):
+if sys.version_info < (2, 7):
     print('ATTENTION!!!')
     print('Vous tentez de lancer mipssim.py sur une version de Python inférieure à 2.7!')
     print('Python 2.6 et ses versions antérieures ne supportent pas OrderedDict, qui')
@@ -34,6 +41,7 @@ from src.simulateur import *
 
 import getopt
 
+
 class Usage(Exception):
     """
     Déclaration des exceptions relatives aux entrées de l'utilisateur.
@@ -41,13 +49,8 @@ class Usage(Exception):
     def __init__(self, msg):
         self.msg = msg
 
+
 def main(argv=None):
-    """
-    Simulateur d'architecture MIPS 64 bits
-    
-    Auteurs: Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel
-    """
-        
     # Indications sur le lancement du simulateur et nom des auteurs (Requis pour le TP)
     print('Simulateur de MIPS en Python (2.7+)')
     print('Étudiants: %s' % "Name")
@@ -61,7 +64,7 @@ def main(argv=None):
             if opts != [] and '-d' in list(zip(*opts))[0]:
                 debug = True
             else:
-                debug =  False
+                debug = False
 
             if opts != [] and '-h' in list(zip(*opts))[0]:
                 print("""Utilisation de mipssim.py :
@@ -71,7 +74,7 @@ Testé avec les versions de python suivantes: 2.7, 3.2
         """)
                 return
         except getopt.error as msg:
-             raise Usage(msg)
+                raise Usage(msg)
         try:
             config_file = args[0]
             source_file = args[1]

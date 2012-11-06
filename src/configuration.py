@@ -18,12 +18,13 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from xml.dom.minidom import parse, parseString
+from xml.dom.minidom import parse#, parseString
 import os
-import string
-import time
+#import string
+#import time
 from src.simulateur import SimulationException
 from collections import OrderedDict
+
 
 # #########################
 # Décorateur de validation
@@ -110,7 +111,8 @@ class unite_lancement_multiple(unite_fct):
         super(unite_lancement_multiple, self).__init__()
         # Variables à ajouter
         # self.parametre.update({"variable": None})
-    
+
+
 # #############################################
 # Classes spécifiques des unités fonctionnelles
 # #############################################
@@ -147,7 +149,6 @@ class unite_desc(object):
         else:
             raise SimulationException('Clef invalide: %s' % key)
             
-    
     def __getitem__(self, key):
         if type(key) == int:
             if key > self.quantite - 1:
@@ -155,7 +156,6 @@ class unite_desc(object):
             return self.conteneur[key]
         else:
             raise SimulationException('Clef invalide: %s' % key)
-             
              
     def __setattr__(self, key, value):
         if key == 'quantite':
@@ -174,9 +174,9 @@ class unite_desc(object):
             
     def __repr__(self):
         return 'Qte %d ExecTime: %d Exectime2: %d Contenu: %s' % (self.quantite,
-                                                                  self.temps_execution,
-                                                                  self.temps_execution_division,
-                                                                  self.Container)
+         self.temps_execution,
+         self.temps_execution_division,
+         self.conteneur) 
 
         
 class unite_math(unite_desc):
@@ -185,17 +185,20 @@ class unite_math(unite_desc):
     """
     pass
 
+
 class unite_store(unite_desc):
     """
     Classe racine des unités fonctionnelles de store.
     """
     pass
 
+
 class unite_load(unite_desc):
     """
     Classe racine des unités fonctionnelles de load.
     """
     pass
+
 
 class unite_branch(unite_desc):
     """
@@ -210,20 +213,19 @@ class unite_branch(unite_desc):
 # #######################
 # Classe de configuration
 # #######################
-"""
-Exemple d'utilisation de la classe:
-print(config.registre['R0'])
-print(config.registre['F1'])
-config.registre['R15'] = 5
-try:
-    print(config.registre['R2154'])
-except:
-    print('Could not access R2154, ce qui est normal...')
-"""
 class mips_configuration(object):
     """
     Classe définissant la configuration et l'état du MIPS simulé.
     Contient les états des unités fonctionnelles, des registres et de la mémoire.
+
+    Exemple d'utilisation de la classe:
+        print(config.registre['R0'])
+        print(config.registre['F1'])
+        config.registre['R15'] = 5
+        try:
+            print(config.registre['R2154'])
+        except:
+            print('Could not access R2154, ce qui est normal...')
     """
     class unite_fonctionnelle_definition(object):
         """
@@ -293,7 +295,7 @@ class mips_configuration(object):
         """
         def __init__(self):
             # Initialisation des registres
-            for a in [a[0] + str(a[1]) for a in zip(['R']*32 + ['F']*32, list(range(32))*2)]:
+            for a in [a[0] + str(a[1]) for a in zip(['R'] * 32 + ['F'] * 32, list(range(32)) * 2)]:
                 self.conteneur[a] = 0
         
         def __repr__(self):
@@ -421,12 +423,12 @@ class mips_configuration(object):
 
         # Attribution des registres
         childNodes = xml_data.getElementsByTagName("Registers")[0].childNodes
-        childNodes = zip(childNodes[::2],childNodes[1::2])
+        childNodes = zip(childNodes[::2], childNodes[1::2])
         for a in childNodes:
             registre_name = a[1].tagName
             registre_value = a[1]._attrs['value'].value
             self.registre[registre_name] = registre_value
-            self.registre[registre_name+'T'] = registre_value
+            self.registre[registre_name + 'T'] = registre_value
         
         # Attribution de la mémoire
         try:

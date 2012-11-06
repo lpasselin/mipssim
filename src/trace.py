@@ -19,7 +19,7 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
-import re
+#import re
 
 from src.lib.prettytable import PrettyTable
 from src.interpreteur import INSTRUCTION_SET, memory_re
@@ -65,7 +65,7 @@ class gestion_deverminage(object):
                                     R1Value = configuration.registre[str(b.split('(')[1][:-1])]
                                     if str(R1Value)[0] != str('&'):
                                         Offset = int(b.split('(')[0])
-                                        AddrValue =  R1Value + Offset
+                                        AddrValue = R1Value + Offset
                                         station_number['addr'] = AddrValue
                 # Trouver l'opération
                 op_back = []
@@ -126,7 +126,7 @@ class gestion_deverminage(object):
         for index, elem in enumerate(configuration.ROB):
             station_name = "".join([a for a in elem[0] if not a.isdigit()] + [str(int("".join([a for a in elem[0] if a.isdigit()])))])
             num_unite_fct = int("".join([str(int("".join([a for a in elem[0] if a.isdigit()])))]))
-            unite_fct = configuration.unite_fonctionnelle["".join([a for a in elem[0] if not a.isdigit()])][num_unite_fct-1]
+            unite_fct = configuration.unite_fonctionnelle["".join([a for a in elem[0] if not a.isdigit()])][num_unite_fct - 1]
             show_ROB.add_row([index,
                               noneify(unite_fct['busy']),
                               station_name,
@@ -148,7 +148,7 @@ class gestion_deverminage(object):
                                 if elem[1] != None else ""])
 
         # Affichage des tableaux précédemment créés
-        self.trace_ptr.write("%s\n" % ("="*80))
+        self.trace_ptr.write("%s\n" % ("=" * 80))
         self.trace_ptr.write("Cycle: %d\n" % self.horloge)
         self.trace_ptr.write("Program Counter : %d\n" % configuration.PC)
         self.trace_ptr.write("Stations de réservation:\n%s\n\n" % str(res_table))

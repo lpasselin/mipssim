@@ -19,8 +19,8 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import sys
-import os
-import re
+#import os
+#import re
 from src.trace import gestion_deverminage
 from src.interpreteur import INSTRUCTION_SET, begin_memory_re, memory_re, memory_re_direct, registry_re
 
@@ -31,6 +31,7 @@ class SimulationException(Exception):
     """
     def __init__(self, value):
         self.parameter = value
+
     def __str__(self):
         return repr(self.parameter)
 
@@ -85,9 +86,12 @@ l'exécution est terminée
         
         Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         """
+        if self.deverminage.horloge == 6:
+            import ipdb; ipdb.set_trace()
+
         # Check si l'unité fonctionnelle requise est libre
         if self.verbose:
-            print("Coup de clock - Ligne %s - Stall = %s" % (
+            print("Coup d'horloge - PC = %s - Stall = %s" % (
                   str(self.config.PC), 
                   str(self.stall))
                  )
@@ -128,7 +132,7 @@ l'exécution est terminée
         Les opérations du ROB dont l'unité fonctionnelle a terminé sont alors 
         effectuées.
         """
-        if len(self.config.ROB)> 0 and self.config.ROB[0][1] != None:
+        if len(self.config.ROB) > 0 and self.config.ROB[0][1] != None:
             if self.verbose:
                 print("Execution: %s" % self.config.ROB[0][1][1])
             architecture_proxy = {'self': self}
@@ -138,7 +142,7 @@ l'exécution est terminée
             # Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre
             # opération qui changerait le même registre
             for b in list(zip(*self.config.ROB))[0]:
-                d = int("".join([e for e in list(b) if e.isdigit()]))-1
+                d = int("".join([e for e in list(b) if e.isdigit()])) - 1
                 c = "".join([e for e in list(b) if not e.isdigit()])
                 unite = self.config.unite_fonctionnelle[c][d]
                 
@@ -168,7 +172,6 @@ l'exécution est terminée
                             unite['vk'] = resultat
                         unite['qk'] = None
                         
-            
             # Quand une instruction est sanctionnée, s'assurer qu'elle n'écrit pas une valeur qui est encore dans le ROB comme fixe (ie. registre)
             if self.config.ROB[0][1][1].split("=")[0].strip().find("self.config.registre") != -1:                
                 exec(self.config.ROB[0][1][1].strip().replace("'] ", "T'] ", 1), architecture_proxy)
@@ -180,7 +183,7 @@ l'exécution est terminée
                             break
             else:
                 # Vérifier qu'aucune opération pending wants to write to this register
-                for b in [a for a in self.config.unite_fonctionnelle.list() if a not in  ["Store", "Branch"]]:
+                for b in [a for a in self.config.unite_fonctionnelle.list() if a not in ["Store", "Branch"]]:
                     # Prendre une référence sur l'unité fonctionnelle qu'on analyse
                     unite = self.config.unite_fonctionnelle[b] 
                     for c in range(len(unite)):
@@ -206,7 +209,7 @@ l'exécution est terminée
                     self.clean_unite_fonctionnelles()
                     # Clean des registres
                     self.config.registre['F0'] = self.config.registre['F0T']
-                    for a in range(1,31):
+                    for a in range(1, 31):
                         self.config.registre['R%d' % a] = self.config.registre['R%dT' % a]
                         self.config.registre['F%d' % a] = self.config.registre['F%dT' % a]
                 else:
@@ -214,7 +217,7 @@ l'exécution est terminée
                     self.new_pc = None
             
             # Une fois l'instruction sanctionnée, la retirer du ROB
-            if len(self.config.ROB)>0:
+            if len(self.config.ROB) > 0:
                 self.config.ROB.pop(0)
             
             # Si nous ne sommes pas en présence d'un aléa, incrémenter le 
@@ -299,7 +302,7 @@ l'exécution est terminée
             valeurs = []
             for a in params:
                 valeurs.append("%s=%s" % (a, code))
-            print('Debug: %s | %s' % (code.replace("self.config.",""), str(valeurs)))
+            print('Debug: %s | %s' % (code.replace("self.config.", ""), str(valeurs)))
 
         # Wrapping de l'opération en code Python
         retour = "=".join(code.split("=")[1:])
@@ -343,7 +346,7 @@ l'exécution est terminée
                     else:
                         # Si on passe de 0 à -1, l'unité redevient available et le résultat est écrit (Write de Tomasulo)
                         if unite[b]['temps'] < 1:
-                            nom_unite = a+str(b+1)
+                            nom_unite = a + str(b + 1)
                             self.unite_sanctionnement_now.append(nom_unite)
                             
                             # Prêt au sanctionnement
@@ -353,7 +356,7 @@ l'exécution est terminée
                             unite[b].reset()
                             # Modifier l'information dans le ROB. Trouver et mettre à jour l'élément [1] du ROB avec retour
                             for index, c in reversed([(index, i) for index, i in enumerate(self.config.ROB)]):
-                                if c[0] == a + str(b+1):
+                                if c[0] == a + str(b + 1):
                                     self.config.ROB[index][1] = retour
                                     break
                             
@@ -396,7 +399,7 @@ l'exécution est terminée
         # Attribuer l'opération à une station de réservation si possible
         if unite_index != None:
             # Ajouter l'info au ROB
-            self.config.ROB.append([self.interpreter.flow[self.config.PC][0][0] + str(unite_index+1), None])
+            self.config.ROB.append([self.interpreter.flow[self.config.PC][0][0] + str(unite_index + 1), None])
             # Attribuer les variables de Tomasulo
             ref_unite_fct[unite_index]['busy'] = True
             ref_unite_fct[unite_index]['temps'] = None
@@ -494,7 +497,7 @@ l'exécution est terminée
             # Mettre une référence dans la destination, soit &Unite_name
             if destination is not None and destination is not []:
                 #Utiliser une notation débutant à 1.
-                destination_value = '&' + self.interpreter.flow[self.config.PC][0][0] + str(unite_index+1)
+                destination_value = '&' + self.interpreter.flow[self.config.PC][0][0] + str(unite_index + 1)
                 self.config.registre[self.interpreter.flow[self.config.PC][1][destination]] = destination_value
 
             # Passer à l'opération suivante s'il n'y a pas de branch qui s'est déjà effectué
@@ -508,9 +511,9 @@ l'exécution est terminée
                     # Spéculation forward or backward ENGAGED
                     self.new_pc = int(self.interpreter.flow[self.config.PC][1][-1][1:])
                     self.config.ROB[-1].append(True)
-                    self.config.ROB[-1].append(int(self.config.PC+1))
+                    self.config.ROB[-1].append(int(self.config.PC + 1))
                 else:
-                    self.new_pc = int(self.config.PC+1)
+                    self.new_pc = int(self.config.PC + 1)
                     self.config.ROB[-1].append(False)
                     self.config.ROB[-1].append(int(self.interpreter.flow[self.config.PC][1][-1][1:]))
         else:
@@ -519,7 +522,7 @@ l'exécution est terminée
 
     def find_unite_fct(self, unite, nom_unite):
         for index, a in enumerate(unite):
-            str_unite = nom_unite + str(index+1)
+            str_unite = nom_unite + str(index + 1)
             if a['busy'] == False and str_unite not in self.unite_sanctionnement_now and len(list(filter(lambda r: r[0] == str_unite, self.config.ROB))) == 0:
                 return index 
         else:
