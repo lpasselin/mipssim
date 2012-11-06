@@ -86,8 +86,6 @@ l'exécution est terminée
         
         Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         """
-        if self.deverminage.horloge == 6:
-            import ipdb; ipdb.set_trace()
 
         # Check si l'unité fonctionnelle requise est libre
         if self.verbose:

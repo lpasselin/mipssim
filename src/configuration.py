@@ -45,57 +45,28 @@ def garantir_registre_valide(func):
     return function_handling
 
 
-# #######################################
-# Classe racine des unités fonctionnelles
-# #######################################
-class unite_fct(object):
+class unite_fct(OrderedDict):
     """
     Variables Tomasulo des unités fonctionnelles.
     
-    Contient:
+    Contient les champs suivants : 
     
-    - temps
-    - addr
-    - op
-    - vj
-    - vk
-    - qj
-    - qk
+     temps, addr, op, vj, vk, qj, qk
     
     """
+
     def __init__(self):
         """
         Les paramètres doivent être initialisés au Runtime 
         (dans le constructeur) sinon c'est la même copie qui est changée. 
         """
-        self.parametre = OrderedDict([("busy", False),
-              ("temps", None),
-              ("addr", None),
-              ("op", None),
-              ("vj", None),
-              ("vk", None),
-              ("qj", None),
-              ("qk", None)])
-        
-    def __setitem__(self, key, value):
-        self.parametre[key] = value
-    
-    def __getitem__(self, key):
-        return self.parametre[key]
-    
-    def __iter__(self):
-        for key in self.parametre.keys():
-            yield key
+        super(unite_fct, self).__init__()
+        self.update({"busy": False, "temps": None, "addr": None, "op": None,
+              "vj": None, "vk": None, "qj": None, "qk": None})
 
-    def keys(self):
-        return list(self.parametre.keys())
-        
-    def values(self):
-        return list(self.parametre.values())
-    
     def reset(self):
         self.__init__()
-    
+
 
 class unite_tomasulo_speculation(unite_fct):
     """
@@ -103,14 +74,11 @@ class unite_tomasulo_speculation(unite_fct):
     """
     def __init__(self):
         super(unite_tomasulo_speculation, self).__init__()
-        self.parametre.update({"dest": None})
+        self['dest'] = None
         
-        
+
 class unite_lancement_multiple(unite_fct):
-    def __init__(self):
-        super(unite_lancement_multiple, self).__init__()
-        # Variables à ajouter
-        # self.parametre.update({"variable": None})
+    pass
 
 
 # #############################################
