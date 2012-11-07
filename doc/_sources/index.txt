@@ -6,7 +6,7 @@
 Documentation du Simulateur MIPS - TP 2
 =======================================
 
-GIF-3000 (82811)
+Université Laval, département de Génie Électrique et Informatique, cours GIF-3000 (82811).
 
 Ce présent document explique le fonctionnement et l'utilisation du simulateur d'architecture MIPS 64 bits.
 

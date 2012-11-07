@@ -3,13 +3,16 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Architecture du MIPS 64 bits &mdash; Simulateur MIPS - TP 2 v0.9 documentation</title>
+    <title>Architecture du MIPS 64 bits et du simulateur &mdash; Simulateur MIPS - TP 2 0.9 documentation</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
@@ -22,9 +25,9 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Simulateur MIPS - TP 2 v0.9 documentation" href="index.html" />
+    <link rel="top" title="Simulateur MIPS - TP 2 0.9 documentation" href="index.html" />
     <link rel="next" title="Module d’interprétation" href="interpreteur.html" />
-    <link rel="prev" title="Documentation du Simulateur MIPS - TP 2" href="index.html" /> 
+    <link rel="prev" title="Utilisation du programme de simulation d’architecture MIPS 64 bits" href="programme.html" /> 
   </head>
   <body>
     <div class="related">
@@ -34,15 +37,12 @@
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
           <a href="interpreteur.html" title="Module d’interprétation"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Documentation du Simulateur MIPS - TP 2"
+          <a href="programme.html" title="Utilisation du programme de simulation d’architecture MIPS 64 bits"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -51,9 +51,13 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="architecture-du-mips-64-bits">
-<h1>Architecture du MIPS 64 bits<a class="headerlink" href="#architecture-du-mips-64-bits" title="Permalink to this headline">¶</a></h1>
-<p>L&#8217;architecture MIPS (<strong>Microprocessor without Interlocked Pipeline Stages</strong>) a un jeu d&#8217;instruction réduit (<strong>RISC</strong>)</p>
+  <div class="section" id="architecture-du-mips-64-bits-et-du-simulateur">
+<h1>Architecture du MIPS 64 bits et du simulateur<a class="headerlink" href="#architecture-du-mips-64-bits-et-du-simulateur" title="Permalink to this headline">¶</a></h1>
+<p>L&#8217;architecture MIPS (<strong>Microprocessor without Interlocked Pipeline Stages</strong>) a un jeu d&#8217;instruction réduit (<strong>RISC</strong>). Plus d&#8217;informations sont disponibles dans le livre du cours ou sur internet.</p>
+<div class="figure align-center">
+<img alt="Diagramme de classe du simulateur de MIPS" src="_images/class_diagram.png" />
+<p class="caption">Figure 1. Diagramme de classe du simulateur de MIPS 64 bits représentant les principales classes du projet.</p>
+</div>
 <div class="section" id="specifications-de-l-architecture">
 <h2>Spécifications de l&#8217;architecture<a class="headerlink" href="#specifications-de-l-architecture" title="Permalink to this headline">¶</a></h2>
 <p>Les spécifications émulées par le simulateur sont les suivantes:</p>
@@ -89,15 +93,15 @@
         <div class="sphinxsidebarwrapper">
   <h3><a href="index.html">Table Of Contents</a></h3>
   <ul>
-<li><a class="reference internal" href="#">Architecture du MIPS 64 bits</a><ul>
+<li><a class="reference internal" href="#">Architecture du MIPS 64 bits et du simulateur</a><ul>
 <li><a class="reference internal" href="#specifications-de-l-architecture">Spécifications de l&#8217;architecture</a></li>
 </ul>
 </li>
 </ul>
 
   <h4>Previous topic</h4>
-  <p class="topless"><a href="index.html"
-                        title="previous chapter">Documentation du Simulateur MIPS - TP 2</a></p>
+  <p class="topless"><a href="programme.html"
+                        title="previous chapter">Utilisation du programme de simulation d&#8217;architecture MIPS 64 bits</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="interpreteur.html"
                         title="next chapter">Module d&#8217;interprétation</a></p>
@@ -109,7 +113,7 @@
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -130,20 +134,17 @@
           <a href="genindex.html" title="General Index"
              >index</a></li>
         <li class="right" >
-          <a href="py-modindex.html" title="Python Module Index"
-             >modules</a> |</li>
-        <li class="right" >
           <a href="interpreteur.html" title="Module d’interprétation"
              >next</a> |</li>
         <li class="right" >
-          <a href="index.html" title="Documentation du Simulateur MIPS - TP 2"
+          <a href="programme.html" title="Utilisation du programme de simulation d’architecture MIPS 64 bits"
              >previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Yannick Hold-Geoffroy.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>

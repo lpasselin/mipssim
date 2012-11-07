@@ -20,8 +20,6 @@
 
 from xml.dom.minidom import parse
 import os
-#import string
-#import time
 from src.simulateur import SimulationException
 from collections import OrderedDict
 

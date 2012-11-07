@@ -64,6 +64,7 @@ class mips_interpreteur:
         (["Unite_fonctionnelle", "Operation_a_effectuer"], ["Param1", "Param2", ...])
         
     """
+    # TODO: remove self.flow & self.labels
     def __init__(self, source_file=None):
         """
         Ouvre un fichier source assembleur de MIPS et en génère une 

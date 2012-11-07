@@ -3,13 +3,16 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Module d’interprétation &mdash; Simulateur MIPS - TP 2 v0.9 documentation</title>
+    <title>Module d’interprétation &mdash; Simulateur MIPS - TP 2 0.9 documentation</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
@@ -22,9 +25,9 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Simulateur MIPS - TP 2 v0.9 documentation" href="index.html" />
+    <link rel="top" title="Simulateur MIPS - TP 2 0.9 documentation" href="index.html" />
     <link rel="next" title="Module de configuration" href="configuration.html" />
-    <link rel="prev" title="Architecture du MIPS 64 bits" href="architecture.html" /> 
+    <link rel="prev" title="Architecture du MIPS 64 bits et du simulateur" href="architecture.html" /> 
   </head>
   <body>
     <div class="related">
@@ -40,9 +43,9 @@
           <a href="configuration.html" title="Module de configuration"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="architecture.html" title="Architecture du MIPS 64 bits"
+          <a href="architecture.html" title="Architecture du MIPS 64 bits et du simulateur"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -56,7 +59,7 @@
 <div class="section" id="utilisation-du-module">
 <h2>Utilisation du module<a class="headerlink" href="#utilisation-du-module" title="Permalink to this headline">¶</a></h2>
 <p>Le module d&#8217;interprétation s&#8217;instancie avec le chemin du code source assembleur MIPS 64 bits en paramètre comme suit:</p>
-<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">src.interpreter</span> <span class="kn">import</span> <span class="o">*</span>
+<div class="highlight-python"><div class="highlight"><pre><span class="kn">from</span> <span class="nn">src.interpreteur</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="n">interpreter</span> <span class="o">=</span> <span class="n">mips_interpreteur</span><span class="p">(</span><span class="n">source_file</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -104,11 +107,11 @@
 </ul>
 </div>
 </div>
-<div class="section" id="module-src.interpreter">
-<span id="classes-et-membres-du-module-d-interpretation"></span><h2>Classes et membres du module d&#8217;interprétation<a class="headerlink" href="#module-src.interpreter" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-src.interpreteur">
+<span id="classes-et-membres-du-module-d-interpretation"></span><h2>Classes et membres du module d&#8217;interprétation<a class="headerlink" href="#module-src.interpreteur" title="Permalink to this headline">¶</a></h2>
 <dl class="class">
-<dt id="src.interpreter.mips_interpreteur">
-<em class="property">class </em><tt class="descclassname">src.interpreter.</tt><tt class="descname">mips_interpreteur</tt><big>(</big><em>source_file=None</em><big>)</big><a class="reference internal" href="_modules/src/interpreter.html#mips_interpreteur"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreter.mips_interpreteur" title="Permalink to this definition">¶</a></dt>
+<dt id="src.interpreteur.mips_interpreteur">
+<em class="property">class </em><tt class="descclassname">src.interpreteur.</tt><tt class="descname">mips_interpreteur</tt><big>(</big><em>source_file=None</em><big>)</big><a class="reference internal" href="_modules/src/interpreteur.html#mips_interpreteur"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreteur.mips_interpreteur" title="Permalink to this definition">¶</a></dt>
 <dd><p>Interpréteur de source assembleur du MIPS.</p>
 <p>Entrée: Source en assembleur MIPS 64 bits.
 Sortie: Une liste. Chaque élément de la liste est une ligne de code.</p>
@@ -116,24 +119,34 @@ Sortie: Une liste. Chaque élément de la liste est une ligne de code.</p>
 <dt>Ces éléments sont des tuples de la forme suivante::</dt>
 <dd>([&#8220;Unite_fonctionnelle&#8221;, &#8220;Operation_a_effectuer&#8221;], [&#8220;Param1&#8221;, &#8220;Param2&#8221;, ...])</dd>
 </dl>
+<dl class="attribute">
+<dt id="src.interpreteur.mips_interpreteur.flow">
+<tt class="descname">flow</tt><em class="property"> = []</em><a class="headerlink" href="#src.interpreteur.mips_interpreteur.flow" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="src.interpreteur.mips_interpreteur.labels">
+<tt class="descname">labels</tt><em class="property"> = {}</em><a class="headerlink" href="#src.interpreteur.mips_interpreteur.labels" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
-<dt id="src.interpreter.mips_interpreteur.parse_assembler">
-<tt class="descname">parse_assembler</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreter.html#mips_interpreteur.parse_assembler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreter.mips_interpreteur.parse_assembler" title="Permalink to this definition">¶</a></dt>
+<dt id="src.interpreteur.mips_interpreteur.parse_assembler">
+<tt class="descname">parse_assembler</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreteur.html#mips_interpreteur.parse_assembler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreteur.mips_interpreteur.parse_assembler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convertis le code assembleur en mnémoniques représentés par 
 l&#8217;énumération au début du fichier.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="src.interpreter.mips_interpreteur.parse_instructions">
-<tt class="descname">parse_instructions</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreter.html#mips_interpreteur.parse_instructions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreter.mips_interpreteur.parse_instructions" title="Permalink to this definition">¶</a></dt>
+<dt id="src.interpreteur.mips_interpreteur.parse_instructions">
+<tt class="descname">parse_instructions</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreteur.html#mips_interpreteur.parse_instructions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreteur.mips_interpreteur.parse_instructions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convertis une source composée des lignes de codes, labels exclus, en 
 une liste de tuples représentant l&#8217;instruction puis ses paramètres opaques.
 ie. [(instruction_number, parameters), ...]</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="src.interpreter.mips_interpreteur.parse_labels">
-<tt class="descname">parse_labels</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreter.html#mips_interpreteur.parse_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreter.mips_interpreteur.parse_labels" title="Permalink to this definition">¶</a></dt>
+<dt id="src.interpreteur.mips_interpreteur.parse_labels">
+<tt class="descname">parse_labels</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreteur.html#mips_interpreteur.parse_labels"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreteur.mips_interpreteur.parse_labels" title="Permalink to this definition">¶</a></dt>
 <dd><p>Cherche les labels dans le code et les assigne au dictionnaire labels de
 la classe sous la forme :
 labels[&#8216;nom_du_label&#8217;] = numero_de_l&#8217;operation
@@ -142,8 +155,8 @@ ou
 </dd></dl>
 
 <dl class="method">
-<dt id="src.interpreter.mips_interpreteur.parse_parameters">
-<tt class="descname">parse_parameters</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreter.html#mips_interpreteur.parse_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreter.mips_interpreteur.parse_parameters" title="Permalink to this definition">¶</a></dt>
+<dt id="src.interpreteur.mips_interpreteur.parse_parameters">
+<tt class="descname">parse_parameters</tt><big>(</big><em>in_source</em><big>)</big><a class="reference internal" href="_modules/src/interpreteur.html#mips_interpreteur.parse_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.interpreteur.mips_interpreteur.parse_parameters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Segmente les paramètres des opérations en une liste d&#8217;éléments au sein 
 de la liste de tuples retourné par la fonction parse_instructions.</p>
 </dd></dl>
@@ -166,14 +179,14 @@ de la liste de tuples retourné par la fonction parse_instructions.</p>
 <li><a class="reference internal" href="#mnemoniques-assembleur-supportes">Mnémoniques assembleur supportés</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-src.interpreter">Classes et membres du module d&#8217;interprétation</a></li>
+<li><a class="reference internal" href="#module-src.interpreteur">Classes et membres du module d&#8217;interprétation</a></li>
 </ul>
 </li>
 </ul>
 
   <h4>Previous topic</h4>
   <p class="topless"><a href="architecture.html"
-                        title="previous chapter">Architecture du MIPS 64 bits</a></p>
+                        title="previous chapter">Architecture du MIPS 64 bits et du simulateur</a></p>
   <h4>Next topic</h4>
   <p class="topless"><a href="configuration.html"
                         title="next chapter">Module de configuration</a></p>
@@ -185,7 +198,7 @@ de la liste de tuples retourné par la fonction parse_instructions.</p>
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -212,14 +225,14 @@ de la liste de tuples retourné par la fonction parse_instructions.</p>
           <a href="configuration.html" title="Module de configuration"
              >next</a> |</li>
         <li class="right" >
-          <a href="architecture.html" title="Architecture du MIPS 64 bits"
+          <a href="architecture.html" title="Architecture du MIPS 64 bits et du simulateur"
              >previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Yannick Hold-Geoffroy.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>
