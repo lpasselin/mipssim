@@ -116,7 +116,7 @@ l'exécution est terminée
         or self.config.PC == None) and len(self.config.ROB) < 1:
             return 1
         else:
-            # Impression de la trace
+            # Impression de la trace_ptr
             if 'deverminage' in list(self.__dict__.keys()):
                 self.deverminage.mise_a_jour_trace(self.config)
             return 0
@@ -132,8 +132,46 @@ l'exécution est terminée
             if self.verbose:
                 print("Execution: %s" % self.config.ROB[0][1][1])
             architecture_proxy = {'self': self}
-            
-            exec(self.config.ROB[0][1][1], architecture_proxy)
+
+            # Quand une instruction est sanctionnée, s'assurer qu'elle n'écrit pas
+            # une valeur qui est encore dans le ROB comme fixe (ie. registre)
+            ecrire_registre = True
+            if self.config.ROB[0][1][1].split("=")[0].strip().find("self.config.registre") == 0:
+                exec(self.config.ROB[0][1][1].strip().replace("'] ", "T'] ", 1), architecture_proxy)
+                #JCL: Tentative différente
+                #Si le registre dans lequel cette instruction doit écrire attend
+                #une valeur en provenance d'une autre unité fonctionnelle, il ne
+                #faut pas écraser le registre.
+                
+                #Contenu du registre à l'adresse d'écriture                
+                reg_str = self.config.ROB[0][1][1].split(" =")[0]
+                reg = reg_str.split('\'')[1]
+                val_reg = self.config.registre[reg]
+
+                if isinstance(val_reg, basestring) and val_reg[1:] != self.config.ROB[0][0]:
+                    #Il ne faut pas écrire par dessus le &UF
+                    ecrire_registre = False
+
+                '''for a in self.config.ROB[1:]:
+                    # Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &cossin
+                    if a[0][:6] != 'Branch' and a[0][:5] != 'Store':
+                        if a[1] != None and a[1][1].split("=")[0].strip() == self.config.ROB[0][1][1].split("=")[0].strip():
+                            exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(a[0])), architecture_proxy)
+                            break'''
+            else:
+                # Vérifier qu'aucune opération pending wants to write to this register
+                for b in [a for a in self.config.unite_fonctionnelle.list() if a not in ["Store", "Branch"]]:
+                    # Prendre une référence sur l'unité fonctionnelle qu'on analyse
+                    unite = self.config.unite_fonctionnelle[b] 
+                    for c in range(len(unite)):
+                        # Vérifier que l'unité est actuellement utilisé :
+                        if unite[c]['busy'] == True:
+                            if unite[c]['op'][1][0] == self.config.ROB[0][1][1].split("=")[0].strip().split(".")[-1]:
+                                exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(b) + str(c)), architecture_proxy)
+                                self = ldict['self']
+
+            if ecrire_registre:
+                exec(self.config.ROB[0][1][1], architecture_proxy)
             
             # Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre
             # opération qui changerait le même registre
@@ -167,27 +205,6 @@ l'exécution est terminée
                         else:
                             unite['vk'] = resultat
                         unite['qk'] = None
-                        
-            # Quand une instruction est sanctionnée, s'assurer qu'elle n'écrit pas une valeur qui est encore dans le ROB comme fixe (ie. registre)
-            if self.config.ROB[0][1][1].split("=")[0].strip().find("self.config.registre") != -1:                
-                exec(self.config.ROB[0][1][1].strip().replace("'] ", "T'] ", 1), architecture_proxy)
-                for a in self.config.ROB[1:]:
-                    # Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &cossin
-                    if a[0][:6] != 'Branch' and a[0][:5] != 'Store':
-                        if a[1] != None and a[1][1].split("=")[0].strip() == self.config.ROB[0][1][1].split("=")[0].strip():
-                            exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(a[0])), architecture_proxy)
-                            break
-            else:
-                # Vérifier qu'aucune opération pending wants to write to this register
-                for b in [a for a in self.config.unite_fonctionnelle.list() if a not in ["Store", "Branch"]]:
-                    # Prendre une référence sur l'unité fonctionnelle qu'on analyse
-                    unite = self.config.unite_fonctionnelle[b] 
-                    for c in range(len(unite)):
-                        # Vérifier que l'unité est actuellement utilisé :
-                        if unite[c]['busy'] == True:
-                            if unite[c]['op'][1][0] == self.config.ROB[0][1][1].split("=")[0].strip().split(".")[-1]:
-                                exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(b) + str(c)), architecture_proxy)
-                                self = ldict['self']
                                     
             # Gestion des branchs lors du sanctionnement
             if self.config.ROB[0][0][:6] == 'Branch':     
