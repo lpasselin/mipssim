@@ -18,7 +18,7 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from xml.dom.minidom import parse#, parseString
+from xml.dom.minidom import parse
 import os
 #import string
 #import time
@@ -186,7 +186,8 @@ class mips_configuration(object):
     Classe définissant la configuration et l'état du MIPS simulé.
     Contient les états des unités fonctionnelles, des registres et de la mémoire.
 
-    Exemple d'utilisation de la classe:
+    Exemple d'utilisation de la classe::
+
         print(config.registre['R0'])
         print(config.registre['F1'])
         config.registre['R15'] = 5
@@ -262,14 +263,12 @@ class mips_configuration(object):
         
         """
         def __init__(self):
-            # Initialisation des registres
+            """Initialisation des registres."""
             for a in [a[0] + str(a[1]) for a in zip(['R'] * 32 + ['F'] * 32, list(range(32)) * 2)]:
                 self.conteneur[a] = 0
         
         def __repr__(self):
-            """
-            Affiche le contenu des registres.
-            """
+            """Affiche le contenu des registres."""
             return ", ".join(["%s: %s" % (a, b) for a, b in self.conteneur.items()])
         
         @garantir_registre_valide
@@ -286,9 +285,11 @@ class mips_configuration(object):
             """
             # Capturer un essai d'écriture sur R0
             if item == 'R0':
-                raise SimulationException("Impossible d'utiliser R0, ce registre est une constante.")
+                raise SimulationException("Impossible d'utiliser R0, ce "
+                                          "registre est une constante.")
 
-            # Assigner la valeur au registre, le valider en entier si RX et en fraction si FX
+            # Assigner la valeur au registre, le valider en entier si RX et en
+            # fraction si FX
             try:
                 # ROB
                 if isinstance(value, str) and value[0] == '&':
@@ -302,7 +303,9 @@ class mips_configuration(object):
         
         conteneur = OrderedDict()
     
-    def __init__(self, in_config_file=None, in_architecture=unite_tomasulo_speculation):
+    def __init__(self,
+                 in_config_file=None,
+                 in_architecture=unite_tomasulo_speculation):
         """
         Ouvre un fichier XML et initialise le MIPS simulé en fonction de cette configuration.
         """
@@ -322,7 +325,8 @@ class mips_configuration(object):
             xml_data = parse(xml_path)
             print('Fichier de configuration lu avec succès.')
         except:
-            raise Exception("Impossible d'utiliser le fichier de configuration XML.")
+            raise Exception("Impossible d'utiliser le fichier de configuration "
+                            "XML.")
         
         # Attribution des unités fonctionneles et valeurs écrites ou par défaut
         try:
@@ -408,9 +412,15 @@ class mips_configuration(object):
         self.memoire = self.memoire[0:self.memoire_size] + [0.0] * (self.memoire_size - len(self.memoire[0:self.memoire_size]))
         
     def __repr__(self):
-        return "Unités fonctionnelles: %s\nRegistres: %s\nMémoire: %s\nProgram Counter: %s" % (str(self.unite_fonctionnelle),
-                                                                                               str(self.registre),
-                                                                                               str(self.memoire),
-                                                                                               str(self.PC))
+        return ("Unités fonctionnelles: %s\nRegistres: %s\nMémoire: %s\nProgram "
+                "Counter: %s") % (str(self.unite_fonctionnelle),
+                                  str(self.registre),
+                                  str(self.memoire),
+                                  str(self.PC))
 
     PC = 0
+
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write("Ce module n'est pas utilisable seul.")
+    sys.exit(-1)

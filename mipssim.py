@@ -22,8 +22,8 @@
 """
 Simulateur d'architecture MIPS 64 bits
 
-Auteurs : Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel
-Maintenance : Julien-Charles Lévesque
+Auteurs : Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel.
+Maintenance : Julien-Charles Lévesque.
 """
 
 # Operation warning

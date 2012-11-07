@@ -19,8 +19,6 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import sys
-#import os
-#import re
 from src.trace import gestion_deverminage
 from src.interpreteur import INSTRUCTION_SET, begin_memory_re, memory_re, memory_re_direct, registry_re
 
@@ -409,9 +407,11 @@ l'exécution est terminée
             if ref_unite_fct[unite_index]['op'][0][0] == "Store":
                 to_check = [0, 1]
             elif ref_unite_fct[unite_index]['op'][0][0] == "Branch":
-                if ref_unite_fct[unite_index]['op'][0][1] == '$2 = $1 if $0 == 0 else $2' or ref_unite_fct[unite_index]['op'][0][1] == '$2 = $1 if $0 != 0 else $2':
+                if ref_unite_fct[unite_index]['op'][0][1] == '$2 = $1 if $0 == 0 else $2' \
+                or ref_unite_fct[unite_index]['op'][0][1] == '$2 = $1 if $0 != 0 else $2':
                     to_check = [0]
-                elif ref_unite_fct[unite_index]['op'][0][1] == '$3 = $2 if $0 == $1 else $3' or ref_unite_fct[unite_index]['op'][0][1] == '$3 = $2 if $0 != $1 else $3':
+                elif ref_unite_fct[unite_index]['op'][0][1] == '$3 = $2 if $0 == $1 else $3' \
+                or ref_unite_fct[unite_index]['op'][0][1] == '$3 = $2 if $0 != $1 else $3':
                     to_check = [0, 1]
                 else:
                     to_check = []
@@ -425,7 +425,7 @@ l'exécution est terminée
                     continue
                 param = self.interpreter.flow[self.config.PC][1][a]                
                 
-                # On résout la référence
+                # On résoud la référence
                 temp = self.resolve_variables(param, False)
                 
                 # Est-ce que on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk
@@ -536,3 +536,8 @@ l'exécution est terminée
     unite_sanctionnement_now = []
 
     verbose = False
+    
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write("Ce module n'est pas utilisable seul.")
+    sys.exit(-1)

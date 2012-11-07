@@ -19,7 +19,6 @@
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import os
-#import re
 
 from src.lib.prettytable import PrettyTable
 from src.interpreteur import INSTRUCTION_SET, memory_re
@@ -52,7 +51,7 @@ class gestion_deverminage(object):
         noneify = lambda x: x if x != None else ''
         variables_a_afficher = configuration.unite_fonctionnelle.list()
         res_table = PrettyTable(["station"] + \
-                                 configuration.unite_fonctionnelle[variables_a_afficher[0]][0].keys())
+                                 list(configuration.unite_fonctionnelle[variables_a_afficher[0]][0].keys()))
         for station_type in sorted(variables_a_afficher):
             types = configuration.unite_fonctionnelle[station_type]
             for index, station_number in enumerate(types):
@@ -157,3 +156,9 @@ class gestion_deverminage(object):
         #self.trace_ptr.write(str(["%.2f" % a for a in self.config.memoire])+"\n")
 
         self.trace_ptr.flush()
+
+
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write("Ce module n'est pas utilisable seul.")
+    sys.exit(-1)

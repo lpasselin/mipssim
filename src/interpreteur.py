@@ -192,3 +192,8 @@ memory_re = re.compile('^-*\d+\([RF][-]?\d+[.]?\d*\)$')
 #memory_re_double_reg = re.compile('^-*[RF][-]?\d+[.]?\d*\([RF][-]?\d+[.]?\d*\)$')
 memory_re_direct = re.compile('^-*\d+\([-]?\d+[.]?\d*\)$')
 registry_re = re.compile('([RF]\d{1,2})')
+
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write("Ce module n'est pas utilisable seul.")
+    sys.exit(-1)
