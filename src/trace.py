@@ -22,7 +22,9 @@ import os
 
 from src.lib.prettytable import PrettyTable
 from src.interpreteur import INSTRUCTION_SET, memory_re
- 
+
+# TODO: ne supporte pas Python 3
+
 
 class gestion_deverminage(object):
     

@@ -6,7 +6,7 @@ Utilisation du module
 
 Le module d'interprétation s'instancie avec le chemin du code source assembleur MIPS 64 bits en paramètre comme suit::
 
-    from src.interpreter import *
+    from src.interpreteur import *
     interpreter = mips_interpreteur(source_file)
 
 L'interpréteur supporte l'étiquettage (*label*) d'une ligne.
@@ -59,7 +59,7 @@ Les mnémoniques assembleur MIPS 64 bits supportés par l'interpréteurs sont le
 Classes et membres du module d'interprétation
 ---------------------------------------------
 
-.. automodule:: src.interpreter
+.. automodule:: src.interpreteur
     :members:
     :undoc-members:
     :inherited-members:

@@ -3,13 +3,16 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
   "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
+
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>Module de configuration &mdash; Simulateur MIPS - TP 2 v0.9 documentation</title>
+    <title>Module de configuration &mdash; Simulateur MIPS - TP 2 0.9 documentation</title>
+    
     <link rel="stylesheet" href="_static/default.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
         URL_ROOT:    '',
@@ -22,7 +25,7 @@
     <script type="text/javascript" src="_static/jquery.js"></script>
     <script type="text/javascript" src="_static/underscore.js"></script>
     <script type="text/javascript" src="_static/doctools.js"></script>
-    <link rel="top" title="Simulateur MIPS - TP 2 v0.9 documentation" href="index.html" />
+    <link rel="top" title="Simulateur MIPS - TP 2 0.9 documentation" href="index.html" />
     <link rel="next" title="Module de simulation" href="simulateur.html" />
     <link rel="prev" title="Module d’interprétation" href="interpreteur.html" /> 
   </head>
@@ -42,7 +45,7 @@
         <li class="right" >
           <a href="interpreteur.html" title="Module d’interprétation"
              accesskey="P">previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>  
 
@@ -108,7 +111,7 @@
 <span id="classes-et-membres-du-module-de-configuration"></span><h2>Classes et membres du module de configuration<a class="headerlink" href="#module-src.configuration" title="Permalink to this headline">¶</a></h2>
 <dl class="function">
 <dt id="src.configuration.garantir_registre_valide">
-<tt class="descclassname">src.configuration.</tt><tt class="descname">garantir_registre_valide</tt><big>(</big><em>func</em><big>)</big><a class="headerlink" href="#src.configuration.garantir_registre_valide" title="Permalink to this definition">¶</a></dt>
+<tt class="descclassname">src.configuration.</tt><tt class="descname">garantir_registre_valide</tt><big>(</big><em>func</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#garantir_registre_valide"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.garantir_registre_valide" title="Permalink to this definition">¶</a></dt>
 <dd><p>Décorateur s&#8217;assurant que les registres accédés sont valides.</p>
 </dd></dl>
 
@@ -117,6 +120,21 @@
 <em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">mips_configuration</tt><big>(</big><em>in_config_file=None</em>, <em>in_architecture=&lt;class 'src.configuration.unite_tomasulo_speculation'&gt;</em><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration" title="Permalink to this definition">¶</a></dt>
 <dd><p>Classe définissant la configuration et l&#8217;état du MIPS simulé.
 Contient les états des unités fonctionnelles, des registres et de la mémoire.</p>
+<p>Exemple d&#8217;utilisation de la classe:</p>
+<div class="highlight-python"><div class="highlight"><pre><span class="k">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;R0&#39;</span><span class="p">])</span>
+<span class="k">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;F1&#39;</span><span class="p">])</span>
+<span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;R15&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;R2154&#39;</span><span class="p">])</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Could not access R2154, ce qui est normal...&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="attribute">
+<dt id="src.configuration.mips_configuration.PC">
+<tt class="descname">PC</tt><em class="property"> = 0</em><a class="headerlink" href="#src.configuration.mips_configuration.PC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="class">
 <dt id="src.configuration.mips_configuration.registre_definition">
 <em class="property">class </em><tt class="descname">registre_definition</tt><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.registre_definition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.registre_definition" title="Permalink to this definition">¶</a></dt>
@@ -127,6 +145,11 @@ Contient les états des unités fonctionnelles, des registres et de la mémoire.
 <li>config.registre[&#8216;R2&#8217;] = 5</li>
 <li>config.registre[&#8216;F2&#8217;] = 5.2</li>
 </ul>
+<dl class="attribute">
+<dt id="src.configuration.mips_configuration.registre_definition.conteneur">
+<tt class="descname">conteneur</tt><em class="property"> = OrderedDict()</em><a class="headerlink" href="#src.configuration.mips_configuration.registre_definition.conteneur" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -160,6 +183,11 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <li>spec_backward = False</li>
 <li>unite = []          # deviendra [{&#8216;status&#8217;:-1, &#8216;param1&#8217;:&#8217;&#8216;, &#8216;param2&#8217;:&#8217;&#8216;}, {&#8216;status&#8217;:-1, &#8216;param1&#8217;:&#8217;&#8216;, &#8216;param2&#8217;:&#8217;&#8216;}, ...]</li>
 </ul>
+<dl class="attribute">
+<dt id="src.configuration.mips_configuration.unite_fonctionnelle_definition.conteneur">
+<tt class="descname">conteneur</tt><em class="property"> = {}</em><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition.conteneur" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="src.configuration.mips_configuration.unite_fonctionnelle_definition.list">
 <tt class="descname">list</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/src/configuration.html#mips_configuration.unite_fonctionnelle_definition.list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.mips_configuration.unite_fonctionnelle_definition.list" title="Permalink to this definition">¶</a></dt>
@@ -195,24 +223,84 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <dt id="src.configuration.unite_fct">
 <em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_fct</tt><a class="reference internal" href="_modules/src/configuration.html#unite_fct"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_fct" title="Permalink to this definition">¶</a></dt>
 <dd><p>Variables Tomasulo des unités fonctionnelles.</p>
-<p>Contient:</p>
-<ul class="simple">
-<li>temps</li>
-<li>addr</li>
-<li>op</li>
-<li>vj</li>
-<li>vk</li>
-<li>qj</li>
-<li>qk</li>
-</ul>
+<p>Contient les champs suivants :</p>
+<blockquote>
+<div>temps, addr, op, vj, vk, qj, qk</div></blockquote>
+<dl class="method">
+<dt id="src.configuration.unite_fct.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big> &rarr; None.  Remove all items from od.<a class="headerlink" href="#src.configuration.unite_fct.clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big> &rarr; a shallow copy of od<a class="headerlink" href="#src.configuration.unite_fct.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="src.configuration.unite_fct.fromkeys">
+<em class="property">classmethod </em><tt class="descname">fromkeys</tt><big>(</big><em>S</em><span class="optional">[</span>, <em>v</em><span class="optional">]</span><big>)</big> &rarr; New ordered dictionary with keys from S<a class="headerlink" href="#src.configuration.unite_fct.fromkeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>and values equal to v (which defaults to None).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.get">
+<tt class="descname">get</tt><big>(</big><em>k</em><span class="optional">[</span>, <em>d</em><span class="optional">]</span><big>)</big> &rarr; D[k] if k in D, else d.  d defaults to None.<a class="headerlink" href="#src.configuration.unite_fct.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.has_key">
+<tt class="descname">has_key</tt><big>(</big><em>k</em><big>)</big> &rarr; True if D has a key k, else False<a class="headerlink" href="#src.configuration.unite_fct.has_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.items">
+<tt class="descname">items</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.items" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.iteritems">
+<tt class="descname">iteritems</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.iteritems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.iterkeys">
+<tt class="descname">iterkeys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.iterkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.itervalues">
+<tt class="descname">itervalues</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.itervalues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="src.configuration.unite_fct.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="src.configuration.unite_fct.pop">
+<tt class="descname">pop</tt><big>(</big><em>key</em>, <em>default=&lt;object object at 0x01D71050&gt;</em><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.popitem">
+<tt class="descname">popitem</tt><big>(</big><big>)</big> &rarr; (k, v), return and remove a (key, value) pair.<a class="headerlink" href="#src.configuration.unite_fct.popitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pairs are returned in LIFO order if last is true or FIFO order if false.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="src.configuration.unite_fct.reset">
-<tt class="descname">reset</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.reset" title="Permalink to this definition">¶</a></dt>
+<tt class="descname">reset</tt><big>(</big><big>)</big><a class="reference internal" href="_modules/src/configuration.html#unite_fct.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_fct.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.setdefault">
+<tt class="descname">setdefault</tt><big>(</big><em>key</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.setdefault" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.update">
+<tt class="descname">update</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.update" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -220,15 +308,87 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_fct.values" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="src.configuration.unite_fct.viewitems">
+<tt class="descname">viewitems</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's items<a class="headerlink" href="#src.configuration.unite_fct.viewitems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.viewkeys">
+<tt class="descname">viewkeys</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's keys<a class="headerlink" href="#src.configuration.unite_fct.viewkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_fct.viewvalues">
+<tt class="descname">viewvalues</tt><big>(</big><big>)</big> &rarr; an object providing a view on od's values<a class="headerlink" href="#src.configuration.unite_fct.viewvalues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="src.configuration.unite_lancement_multiple">
-<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_lancement_multiple</tt><a class="headerlink" href="#src.configuration.unite_lancement_multiple" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_lancement_multiple</tt><a class="reference internal" href="_modules/src/configuration.html#unite_lancement_multiple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_lancement_multiple" title="Permalink to this definition">¶</a></dt>
 <dd><dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big> &rarr; None.  Remove all items from od.<a class="headerlink" href="#src.configuration.unite_lancement_multiple.clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big> &rarr; a shallow copy of od<a class="headerlink" href="#src.configuration.unite_lancement_multiple.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="src.configuration.unite_lancement_multiple.fromkeys">
+<em class="property">classmethod </em><tt class="descname">fromkeys</tt><big>(</big><em>S</em><span class="optional">[</span>, <em>v</em><span class="optional">]</span><big>)</big> &rarr; New ordered dictionary with keys from S<a class="headerlink" href="#src.configuration.unite_lancement_multiple.fromkeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>and values equal to v (which defaults to None).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.get">
+<tt class="descname">get</tt><big>(</big><em>k</em><span class="optional">[</span>, <em>d</em><span class="optional">]</span><big>)</big> &rarr; D[k] if k in D, else d.  d defaults to None.<a class="headerlink" href="#src.configuration.unite_lancement_multiple.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.has_key">
+<tt class="descname">has_key</tt><big>(</big><em>k</em><big>)</big> &rarr; True if D has a key k, else False<a class="headerlink" href="#src.configuration.unite_lancement_multiple.has_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.items">
+<tt class="descname">items</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.items" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.iteritems">
+<tt class="descname">iteritems</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.iteritems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.iterkeys">
+<tt class="descname">iterkeys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.iterkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.itervalues">
+<tt class="descname">itervalues</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.itervalues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="src.configuration.unite_lancement_multiple.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.pop">
+<tt class="descname">pop</tt><big>(</big><em>key</em>, <em>default=&lt;object object at 0x01D71050&gt;</em><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.popitem">
+<tt class="descname">popitem</tt><big>(</big><big>)</big> &rarr; (k, v), return and remove a (key, value) pair.<a class="headerlink" href="#src.configuration.unite_lancement_multiple.popitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pairs are returned in LIFO order if last is true or FIFO order if false.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="src.configuration.unite_lancement_multiple.reset">
@@ -236,8 +396,33 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.setdefault">
+<tt class="descname">setdefault</tt><big>(</big><em>key</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.setdefault" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.update">
+<tt class="descname">update</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="src.configuration.unite_lancement_multiple.values">
 <tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_lancement_multiple.values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.viewitems">
+<tt class="descname">viewitems</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's items<a class="headerlink" href="#src.configuration.unite_lancement_multiple.viewitems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.viewkeys">
+<tt class="descname">viewkeys</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's keys<a class="headerlink" href="#src.configuration.unite_lancement_multiple.viewkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_lancement_multiple.viewvalues">
+<tt class="descname">viewvalues</tt><big>(</big><big>)</big> &rarr; an object providing a view on od's values<a class="headerlink" href="#src.configuration.unite_lancement_multiple.viewvalues" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -262,12 +447,69 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 
 <dl class="class">
 <dt id="src.configuration.unite_tomasulo_speculation">
-<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_tomasulo_speculation</tt><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><tt class="descclassname">src.configuration.</tt><tt class="descname">unite_tomasulo_speculation</tt><a class="reference internal" href="_modules/src/configuration.html#unite_tomasulo_speculation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ajoute la variable destination à l&#8217;unité fonctionnelle de base</p>
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.clear">
+<tt class="descname">clear</tt><big>(</big><big>)</big> &rarr; None.  Remove all items from od.<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.clear" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.copy">
+<tt class="descname">copy</tt><big>(</big><big>)</big> &rarr; a shallow copy of od<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="src.configuration.unite_tomasulo_speculation.fromkeys">
+<em class="property">classmethod </em><tt class="descname">fromkeys</tt><big>(</big><em>S</em><span class="optional">[</span>, <em>v</em><span class="optional">]</span><big>)</big> &rarr; New ordered dictionary with keys from S<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.fromkeys" title="Permalink to this definition">¶</a></dt>
+<dd><p>and values equal to v (which defaults to None).</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.get">
+<tt class="descname">get</tt><big>(</big><em>k</em><span class="optional">[</span>, <em>d</em><span class="optional">]</span><big>)</big> &rarr; D[k] if k in D, else d.  d defaults to None.<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.has_key">
+<tt class="descname">has_key</tt><big>(</big><em>k</em><big>)</big> &rarr; True if D has a key k, else False<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.has_key" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.items">
+<tt class="descname">items</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.items" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.iteritems">
+<tt class="descname">iteritems</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.iteritems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.iterkeys">
+<tt class="descname">iterkeys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.iterkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.itervalues">
+<tt class="descname">itervalues</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.itervalues" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="src.configuration.unite_tomasulo_speculation.keys">
 <tt class="descname">keys</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.pop">
+<tt class="descname">pop</tt><big>(</big><em>key</em>, <em>default=&lt;object object at 0x01D71050&gt;</em><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.popitem">
+<tt class="descname">popitem</tt><big>(</big><big>)</big> &rarr; (k, v), return and remove a (key, value) pair.<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.popitem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pairs are returned in LIFO order if last is true or FIFO order if false.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="src.configuration.unite_tomasulo_speculation.reset">
@@ -275,8 +517,33 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.setdefault">
+<tt class="descname">setdefault</tt><big>(</big><em>key</em>, <em>default=None</em><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.setdefault" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.update">
+<tt class="descname">update</tt><big>(</big><em>*args</em>, <em>**kwds</em><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="src.configuration.unite_tomasulo_speculation.values">
 <tt class="descname">values</tt><big>(</big><big>)</big><a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.values" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.viewitems">
+<tt class="descname">viewitems</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's items<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.viewitems" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.viewkeys">
+<tt class="descname">viewkeys</tt><big>(</big><big>)</big> &rarr; a set-like object providing a view on od's keys<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.viewkeys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="src.configuration.unite_tomasulo_speculation.viewvalues">
+<tt class="descname">viewvalues</tt><big>(</big><big>)</big> &rarr; an object providing a view on od's values<a class="headerlink" href="#src.configuration.unite_tomasulo_speculation.viewvalues" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -314,7 +581,7 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
 <div id="searchbox" style="display: none">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
-      <input type="text" name="q" size="18" />
+      <input type="text" name="q" />
       <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
@@ -343,12 +610,12 @@ Ie. le processeur a 4 unités Load. Load sera alors une liste de longueur 4.</p>
         <li class="right" >
           <a href="interpreteur.html" title="Module d’interprétation"
              >previous</a> |</li>
-        <li><a href="index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li> 
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
       </ul>
     </div>
     <div class="footer">
         &copy; Copyright 2011, Yannick Hold-Geoffroy.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
     </div>
   </body>
 </html>
