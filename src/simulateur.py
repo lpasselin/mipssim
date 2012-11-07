@@ -20,7 +20,7 @@
 
 import sys
 from src.trace import gestion_deverminage
-from src.interpreteur import INSTRUCTION_SET, begin_memory_re, memory_re, memory_re_direct, registry_re
+from src.interpreteur import begin_memory_re, memory_re, memory_re_direct, registry_re
 
 
 class SimulationException(Exception):
@@ -44,6 +44,14 @@ class mips_simulateur(object):
     def __init__(self, configuration, interpreteur, fichier_trace=None):
         self.config = configuration
         self.interpreter = interpreteur
+      
+        #Didn't seem to be used...
+        #self.trace_ptr = None
+        #self.horloge = 0
+        #self.unite_sanctionnement_now = []
+        self.stall = False
+        self.new_pc = None
+
         if fichier_trace != None:
             self.deverminage = gestion_deverminage(fichier_trace)
 
@@ -141,23 +149,17 @@ l'exécution est terminée
                 #JCL: Tentative différente
                 #Si le registre dans lequel cette instruction doit écrire attend
                 #une valeur en provenance d'une autre unité fonctionnelle, il ne
-                #faut pas écraser le registre.
+                #faut pas écrire par dessus.
                 
                 #Contenu du registre à l'adresse d'écriture                
                 reg_str = self.config.ROB[0][1][1].split(" =")[0]
                 reg = reg_str.split('\'')[1]
                 val_reg = self.config.registre[reg]
 
-                if isinstance(val_reg, basestring) and val_reg[1:] != self.config.ROB[0][0]:
+                if isinstance(val_reg, str) and val_reg[1:] != self.config.ROB[0][0]:
                     #Il ne faut pas écrire par dessus le &UF
                     ecrire_registre = False
 
-                '''for a in self.config.ROB[1:]:
-                    # Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &cossin
-                    if a[0][:6] != 'Branch' and a[0][:5] != 'Store':
-                        if a[1] != None and a[1][1].split("=")[0].strip() == self.config.ROB[0][1][1].split("=")[0].strip():
-                            exec('%s = "%s"' % (self.config.ROB[0][1][1].split("=")[0].strip(), "&" + str(a[0])), architecture_proxy)
-                            break'''
             else:
                 # Vérifier qu'aucune opération pending wants to write to this register
                 for b in [a for a in self.config.unite_fonctionnelle.list() if a not in ["Store", "Branch"]]:
@@ -543,18 +545,7 @@ l'exécution est terminée
         else:
             return None
 
-    config = None
-    interpreter = None
-    trace_ptr = None
-    horloge = 0
-    stall = False
-    ROB = []
-    new_pc = None
-    unite_sanctionnement_now = []
-
-    verbose = False
     
 if __name__ == '__main__':
-    import sys
     sys.stderr.write("Ce module n'est pas utilisable seul.")
     sys.exit(-1)
