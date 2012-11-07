@@ -1,0 +1,214 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>mipssim &mdash; Simulateur MIPS - TP 2 v0.9 documentation</title>
+    <link rel="stylesheet" href="../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Simulateur MIPS - TP 2 v0.9 documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li>
+          <li><a href="index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for mipssim</h1><div class="highlight"><pre>
+<span class="c">#!/usr/bin/env python</span>
+<span class="c"># -*- coding: utf-8 -*-</span>
+
+<span class="c"># Copyright (c) 2011, Yannick Hold-Geoffroy on behalf of Université Laval</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#</span>
+<span class="c">#    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer </span>
+<span class="c">#       in the documentation and/or other materials provided with the distribution.</span>
+<span class="c">#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived </span>
+<span class="c">#       from this software without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,</span>
+<span class="c"># THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR </span>
+<span class="c"># CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, </span>
+<span class="c"># PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF </span>
+<span class="c"># LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, </span>
+<span class="c"># EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+
+<span class="kn">from</span> <span class="nn">src.configuration</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">src.interpreter</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">src.simulateur</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">getopt</span>
+
+<div class="viewcode-block" id="Usage"><a class="viewcode-back" href="../programme.html#mipssim.Usage">[docs]</a><span class="k">class</span> <span class="nc">Usage</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Déclaration des exceptions relatives aux entrées de l&#39;utilisateur.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">msg</span> <span class="o">=</span> <span class="n">msg</span>
+</div>
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../programme.html#mipssim.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simulateur d&#39;architecture MIPS 64 bits</span>
+<span class="sd">    </span>
+<span class="sd">    Auteurs: Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c"># Operation warning</span>
+    <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span> <span class="o">&lt;</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="mi">0</span><span class="p">):</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;ATTENTION!!!&#39;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;Vous tentez de lancer mipssim.py sur une version de Python antérieure à 3.0&#39;</span><span class="p">)</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;&#39;</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        
+    <span class="c"># Indications sur le lancement du simulateur et nom des auteurs (Requis pour le TP)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Simulateur de MIPS en Python (3.0+)&#39;</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Étudiants: </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="s">&quot;Name&quot;</span><span class="p">)</span>
+    
+    <span class="c"># Évaluation des arguments</span>
+    <span class="k">if</span> <span class="n">argv</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+        <span class="n">argv</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">opts</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="n">getopt</span><span class="o">.</span><span class="n">getopt</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="s">&quot;hd&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s">&quot;help&quot;</span><span class="p">,</span> <span class="s">&quot;debug&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="n">opts</span> <span class="o">!=</span> <span class="p">[]</span> <span class="ow">and</span> <span class="s">&#39;-d&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">opts</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">debug</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">debug</span> <span class="o">=</span>  <span class="bp">False</span>
+
+            <span class="k">if</span> <span class="n">opts</span> <span class="o">!=</span> <span class="p">[]</span> <span class="ow">and</span> <span class="s">&#39;-h&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">opts</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;&quot;&quot;Utilisation de mipssim.py :</span>
+<span class="s">    python ./mipssim.py config.xml source.mips [trace.txt]</span>
+
+<span class="s">Testé avec les versions de python suivantes: 3.2</span>
+<span class="s">        &quot;&quot;&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+        <span class="k">except</span> <span class="n">getopt</span><span class="o">.</span><span class="n">error</span> <span class="k">as</span> <span class="n">msg</span><span class="p">:</span>
+             <span class="k">raise</span> <span class="n">Usage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">config_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">source_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">Usage</span><span class="p">(</span><span class="s">&#39;Veuillez spécifier le fichier de configuration et le fichier source.&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">trace_file</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="c"># Fichier de trace optionnel</span>
+            <span class="n">trace_file</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="k">except</span> <span class="n">Usage</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s">Erreur en analysant les paramètres. Pour un exemple d&#39;utilisation, passez -h en argument.</span><span class="se">\n</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">err</span><span class="o">.</span><span class="n">msg</span><span class="p">))</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+        <span class="k">return</span> <span class="mi">2</span>
+    
+    <span class="c"># Début du programme.</span>
+    <span class="c"># Le path du fichier de configuration est dans config_file</span>
+    <span class="c"># Le path du fichier de source est dans source_file</span>
+    <span class="c"># Le path du fichier de trace est dans trace_file, s&#39;il y a lieu, sinon il s&#39;évalue à None</span>
+
+    <span class="c"># Génération de la configuration du MIPS</span>
+    <span class="n">config</span> <span class="o">=</span> <span class="n">mips_configuration</span><span class="p">(</span><span class="n">config_file</span><span class="p">)</span>
+
+    <span class="c"># Génération de l&#39;interpréteur</span>
+    <span class="n">interpreter</span> <span class="o">=</span> <span class="n">mips_interpreteur</span><span class="p">(</span><span class="n">source_file</span><span class="p">)</span>
+
+    <span class="c"># Génération du simulateur</span>
+    <span class="n">simulateur</span> <span class="o">=</span> <span class="n">mips_simulateur</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">interpreter</span><span class="p">,</span> <span class="n">trace_file</span><span class="p">)</span>
+
+    <span class="c"># Affichage de l&#39;état initial de la mémoire et des registre.</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;État initial des registres: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;État initial de la mémoire: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">memoire</span><span class="p">))</span>
+
+    <span class="c"># Démarrage du simulateur</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Démarrage du simulateur&#39;</span><span class="p">)</span>
+    <span class="n">retour</span> <span class="o">=</span> <span class="n">simulateur</span><span class="o">.</span><span class="n">go</span><span class="p">(</span><span class="n">debug</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&#39;Arrêt du simulateur&#39;</span><span class="p">)</span>
+
+    <span class="c"># Affichage de l&#39;état final de la mémoire et des registre.</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;État final des registres: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">))</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">&quot;État final de la mémoire: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">config</span><span class="o">.</span><span class="n">memoire</span><span class="p">))</span>
+
+    <span class="c"># Affichage de l&#39;état du processus à sa terminaison.</span>
+    <span class="k">if</span> <span class="n">retour</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;Simulation terminée avec succès&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s">&#39;Une erreur est survenue lors de l`exécution du programme&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">retour</span>
+</div>
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" size="18" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../index.html">Simulateur MIPS - TP 2 v0.9 documentation</a> &raquo;</li>
+          <li><a href="index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Yannick Hold-Geoffroy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.0.7.
+    </div>
+  </body>
+</html>
