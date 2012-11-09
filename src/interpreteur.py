@@ -23,36 +23,36 @@ import re
 
 # Instruction Set: {'INSTR': ["Unite_fonctionnelle", "operation"]}
 # $0 = premier argument, $1 = 2e argument, etc.
-INSTRUCTION_SET = {'LD':    ["Load", "$0 = $1"],        # 0. Memory Read
-                   'L.D':   ["Load", "$0 = $1"],
-                   'SD':    ["Store", "$1 = $0"],       # 2. Memory Save
-                   'S.D':   ["Store", "$1 = $0"],
-                   'ADD.D': ["Add", "$0 = $1 + $2"],    # 4. Floating point operations
-                   'SUB.D': ["Add", "$0 = $1 - $2"],
-                   'MUL.D': ["Mult", "$0 = $1 * $2"],
-                   'DIV.D': ["Mult", "$0 = $1 / $2"],
-                   'DADD':  ["ALU", "$0 = $1 + $2"],    # 8. Integer operations
-                   'DADDU': ["ALU", "$0 = $1 + $2"],
-                   'DADDI': ["ALU", "$0 = $1 + $2"],
-                   'DADDIU':["ALU", "$0 = $1 + $2"],
-                   'DSUB':  ["ALU", "$0 = $1 - $2"],
-                   'DSUBU': ["ALU", "$0 = $1 - $2"],
-                   'DMUL':  ["ALU", "$0 = $1 * $2"],
-                   'DMULU': ["ALU", "$0 = $1 * $2"],
-                   'DDIV':  ["ALU", "$0 = $1 / $2"],
-                   'DDIVU': ["ALU", "$0 = $1 / $2"],
-                   'AND':   ["ALU", "$0 = $1 & $2"],
-                   'BEQZ':  ["Branch", "$2 = $1 if $0 == 0 else $2"],      # 19. Branching operations
-                   'BNEZ':  ["Branch", "$2 = $1 if $0 != 0 else $2"],
-                   'BEQ':   ["Branch", "$3 = $2 if $0 == $1 else $3"],
-                   'BNE':   ["Branch", "$3 = $2 if $0 != $1 else $3"],
-                   'J':     ["Branch", "$1 = $0"]
+INSTRUCTION_SET = {'LD':     ["Load", "$0 = $1"],        # 0. Memory Read
+                   'L.D':    ["Load", "$0 = $1"],
+                   'SD':     ["Store", "$1 = $0"],       # 2. Memory Save
+                   'S.D':    ["Store", "$1 = $0"],
+                   'ADD.D':  ["Add", "$0 = $1 + $2"],    # 4. Floating point operations
+                   'SUB.D':  ["Add", "$0 = $1 - $2"],
+                   'MUL.D':  ["Mult", "$0 = $1 * $2"],
+                   'DIV.D':  ["Mult", "$0 = $1 / $2"],
+                   'DADD':   ["ALU", "$0 = $1 + $2"],    # 8. Integer operations
+                   'DADDU':  ["ALU", "$0 = $1 + $2"],
+                   'DADDI':  ["ALU", "$0 = $1 + $2"],
+                   'DADDIU': ["ALU", "$0 = $1 + $2"],
+                   'DSUB':   ["ALU", "$0 = $1 - $2"],
+                   'DSUBU':  ["ALU", "$0 = $1 - $2"],
+                   'DMUL':   ["ALU", "$0 = $1 * $2"],
+                   'DMULU':  ["ALU", "$0 = $1 * $2"],
+                   'DDIV':   ["ALU", "$0 = $1 / $2"],
+                   'DDIVU':  ["ALU", "$0 = $1 / $2"],
+                   'AND':    ["ALU", "$0 = $1 & $2"],
+                   'BEQZ':   ["Branch", "$2 = $1 if $0 == 0 else $2"],      # 19. Branching operations
+                   'BNEZ':   ["Branch", "$2 = $1 if $0 != 0 else $2"],
+                   'BEQ':    ["Branch", "$3 = $2 if $0 == $1 else $3"],
+                   'BNE':    ["Branch", "$3 = $2 if $0 != $1 else $3"],
+                   'J':      ["Branch", "$1 = $0"]
                    }
+
 
 # ##############################################
 # CLasse d'interpétation de la source assembleur
 # ##############################################
-
 class mips_interpreteur:
     """
     Interpréteur de source assembleur du MIPS.
@@ -71,12 +71,14 @@ class mips_interpreteur:
         représentation utile au simulateur.
         """
 
+        self.labels = {}
+
         # Ouvrir le fichier source
         if source_file == None:
             raise Exception('Aucun fichier source en entrée.')
         source_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                                   "..",
-                                                   source_file)
+                                       "..",
+                                       source_file)
                                       )
         try:
             print('Lecture du fichier source %s en cours...' % source_path)
@@ -87,17 +89,19 @@ class mips_interpreteur:
             raise Exception("Impossible d'utiliser le fichier source.")
         self.flow = self.parse_assembler(asm)
 
-    def parse_assembler(self, in_source):
+    def parse_assembler(self, source):
         """
         Convertis le code assembleur en mnémoniques représentés par 
         l'énumération au début du fichier.
         """
-        if type(in_source) != list:
+        if type(source) != list:
             raise Exception('Source non-valide.')
+
+        #Attn: Sur les lignes avec des commentaires, le \n sera aussi retiré.
+        source = map(lambda x: x.split(';')[0], source)
 
         # Gestion des labels. Après cette opération, les labels sont
         # enlevés de la source
-        source = in_source
         source = self.parse_labels(source)
         
         # Mapping des opérations dans la table en haut du fichier.
@@ -129,7 +133,6 @@ class mips_interpreteur:
                 # Assigner dans le dictionnaire des labels la ligne à laquel
                 # ce label est.
                 self.labels[operation[0][:-1]] = index
-
 
         # Effacement des labels dans le source
         for index in self.labels.values():
@@ -169,7 +172,7 @@ class mips_interpreteur:
         for line_num, line in enumerate(source):
             elems = []
             for b in line[1]:
-                elems += ["#"+str(self.labels[b])] if b in self.labels.keys() else [b]
+                elems += ["#" + str(self.labels[b])] if b in self.labels.keys() else [b]
             source[line_num] = (line[0], elems)
             
         return source
@@ -183,10 +186,6 @@ class mips_interpreteur:
         lignes d'assembleur.
         """
         return len(self.flow)
-                
-    
-    flow = []
-    labels = {}
 
 begin_memory_re = re.compile('^-*\d+\(')
 memory_re = re.compile('^-*\d+\([RF][-]?\d+[.]?\d*\)$')
