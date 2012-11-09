@@ -103,12 +103,14 @@ class gestion_deverminage(object):
 
                 row = [station_type + str(index + 1)] + \
                       [noneify(station_number[a]) for a in station_number.keys()]
+
+                station_number_keys = list(station_number.keys())
                 for index, element in enumerate(row):
-                    if station_number.keys()[index - 1] == "op":
+                    if station_number_keys[index - 1] == "op":
                         row[index] = op_back[0] if len(op_back) > 0 else ''
-                    if station_number.keys()[index - 1] == "qj":
+                    if station_number_keys[index - 1] == "qj":
                         row[index] = qj_back
-                    if station_number.keys()[index - 1] == "qk":
+                    if station_number_keys[index - 1] == "qk":
                         row[index] = qk_back
                 res_table.add_row(row)
 
