@@ -18,8 +18,8 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, 
 # EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from xml.dom.minidom import parse
 import os
+from xml.dom.minidom import parse
 from src.simulateur import SimulationException
 from collections import OrderedDict
 
