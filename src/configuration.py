@@ -225,6 +225,7 @@ class mips_configuration(object):
 -            unite = []          # deviendra [{'status':-1, 'param1':'', 'param2':''}, {'status':-1, 'param1':'', 'param2':''}, ...]
         """
         def __init__(self, in_architecture):
+            self.conteneur = {}
             self.conteneur['Load'] = unite_load(in_architecture)
             self.conteneur['Store'] = unite_store(in_architecture)
             self.conteneur['Add'] = unite_math(in_architecture)
@@ -246,8 +247,6 @@ class mips_configuration(object):
         
         def __repr__(self):
             return str(self.conteneur)
-
-        conteneur = {}
                     
     class registre_definition():
         """
@@ -262,6 +261,7 @@ class mips_configuration(object):
         """
         def __init__(self):
             """Initialisation des registres."""
+            self.conteneur = {}
             for a in [a[0] + str(a[1]) for a in zip(['R'] * 32 + ['F'] * 32, list(range(32)) * 2)]:
                 self.conteneur[a] = 0
         
@@ -298,8 +298,6 @@ class mips_configuration(object):
                     self.conteneur[item] = float(value)
             except:
                 raise SimulationException('Valeur à assigner invalide: %s' % value)
-        
-        conteneur = OrderedDict()
     
     def __init__(self,
                  in_config_file=None,
@@ -313,6 +311,7 @@ class mips_configuration(object):
         self.memoire = []
         self.memoire_size = 0
         self.ROB = []
+        self.PC = 0
         
         # Ouvrir le fichier XML
         if in_config_file == None:
@@ -415,8 +414,6 @@ class mips_configuration(object):
                                   str(self.registre),
                                   str(self.memoire),
                                   str(self.PC))
-
-    PC = 0
 
 if __name__ == '__main__':
     import sys
