@@ -356,7 +356,7 @@ class mips_configuration(object):
         try:
             self.unite_fonctionnelle['Mult'].quantite = int(xml_data.getElementsByTagName("Mult")[0]._attrs['number'].value)
         except:
-            self.unite_fonctionnelle['Mult'].quantite = 0
+            self.unite_fonctionnelle['Mult'].quantite = 1 
         try:
             self.unite_fonctionnelle['Mult'].temps_execution = int(xml_data.getElementsByTagName("Mult")[0]._attrs['latency_mul'].value)
         except:
