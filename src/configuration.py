@@ -59,8 +59,17 @@ class unite_fct(OrderedDict):
         (dans le constructeur) sinon c'est la même copie qui est changée. 
         """
         super(unite_fct, self).__init__()
-        self.update({"busy": False, "temps": None, "addr": None, "op": None,
-              "vj": None, "vk": None, "qj": None, "qk": None})
+        
+        #passage des paramètres un par un, car la fonction 'update' ne conserve
+        #pas l'ordre
+        self["busy"] = False
+        self["temps"] = None
+        self["addr"] = None
+        self["op"] = None
+        self["vj"] = None
+        self["vk"] = None
+        self["qj"] = None
+        self["qk"] = None
 
     def reset(self):
         self.__init__()
@@ -225,6 +234,7 @@ class mips_configuration(object):
 -            unite = []          # deviendra [{'status':-1, 'param1':'', 'param2':''}, {'status':-1, 'param1':'', 'param2':''}, ...]
         """
         def __init__(self, in_architecture):
+            #L'ordre des unités fonctionnelles ne doit pas pouvoir changer le comportement!
             self.conteneur = {}
             self.conteneur['Load'] = unite_load(in_architecture)
             self.conteneur['Store'] = unite_store(in_architecture)

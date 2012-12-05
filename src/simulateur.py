@@ -85,10 +85,10 @@ class mips_simulateur(object):
         """
         Effectue une itération de la simulation.
         
-        * Retourne 0 si l'opération s'est déroulée avec succès et \
-l'exécution n'est pas terminée.
-        * Retourne 1 si l'opération s'est déroulée avec succès et \
-l'exécution est terminée
+        * Retourne 0 si l'opération s'est déroulée avec succès et l'exécution \
+        n'est pas terminée.
+        * Retourne 1 si l'opération s'est déroulée avec succès et l'exécution \
+        est terminée
         
         Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         """
@@ -339,26 +339,20 @@ l'exécution est terminée
         # Reset des writeback buffer
         self.unite_sanctionnement_now = []
 
-        for a in self.config.unite_fonctionnelle.list():
+        #Variable temporaire pour savoir si nous avons mis à jour une UF.
+        mis_a_jour = [[False] * len(unite) for unite in self.config.unite_fonctionnelle.list()]
+
+        #Première passe, les instructions devant fournir des opérandes doivent le faire
+        #avant de tenter d'exécuter quoi que ce soit.
+        for i, a in enumerate(self.config.unite_fonctionnelle.list()):
             # Prendre une référence sur l'unité fonctionnelle qu'on analyse
             unite = self.config.unite_fonctionnelle[a]
             for b in range(len(unite)):
                 # Vérifier que l'unité est actuellement utilisée :
                 if unite[b]['busy'] == True:
-                    # Si l'unité fonctionnelle n'est pas démarrée (temps = None), vérifier si on peut la partir
-                    if unite[b]['temps'] == None:
-                        if unite[b]['qj'] == None and unite[b]['qk'] == None:
-                            # On part l'exécution
-                            # Exception pour l'unité fonctionnelle Mult
-                            if a == 'Mult':
-                                if unite[b]['op'][0][1].find('*') > -1:
-                                    unite[b]['temps'] = unite.temps_execution
-                                else:
-                                    unite[b]['temps'] = unite.temps_execution_division
-                            else:
-                                unite[b]['temps'] = unite.temps_execution
                     # Si elle est déjà partie...
-                    else:
+                    if unite[b]['temps'] != None:
+                        mis_a_jour[i][b] = True
                         # Si on passe de 0 à -1, l'unité redevient available et le résultat est écrit (Write de Tomasulo)
                         if unite[b]['temps'] < 1:
                             nom_unite = a + str(b + 1)
@@ -397,6 +391,27 @@ l'exécution est terminée
                         # Sinon, simplement la décrémenter de 1
                         else:
                             unite[b]['temps'] -= 1
+
+        #Seconde passe, tenter de démarrer l'exécution des unités fonctionnelles en attente d'opérandes.
+        for i, a in enumerate(self.config.unite_fonctionnelle.list()):
+            # Prendre une référence sur l'unité fonctionnelle qu'on analyse
+            unite = self.config.unite_fonctionnelle[a]
+            for b in range(len(unite)):
+                # Vérifier que l'unité est actuellement utilisée et qu'elle n'a pas été mise à jour dans 
+                # la passe précédente :
+                if unite[b]['busy'] == True and mis_a_jour[i][b] == False:
+                    # Si l'unité fonctionnelle n'est pas démarrée (temps = None), vérifier si on peut la partir
+                    if unite[b]['temps'] == None:
+                        if unite[b]['qj'] == None and unite[b]['qk'] == None:
+                            # On part l'exécution
+                            # Exception pour l'unité fonctionnelle Mult
+                            if a == 'Mult':
+                                if unite[b]['op'][0][1].find('*') > -1:
+                                    unite[b]['temps'] = unite.temps_execution
+                                else:
+                                    unite[b]['temps'] = unite.temps_execution_division
+                            else:
+                                unite[b]['temps'] = unite.temps_execution
 
     def issue_instr(self):
         """

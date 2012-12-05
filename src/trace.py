@@ -51,6 +51,7 @@ class gestion_deverminage(object):
         variables_a_afficher = configuration.unite_fonctionnelle.list()
         res_table = PrettyTable(["station"] + \
                                  list(configuration.unite_fonctionnelle[variables_a_afficher[0]][0].keys()))
+
         for station_type in sorted(variables_a_afficher):
             types = configuration.unite_fonctionnelle[station_type]
             for index, station_number in enumerate(types):
