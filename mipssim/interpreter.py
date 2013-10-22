@@ -1,0 +1,169 @@
+# -*- coding: utf-8 -*-
+
+# Copyright (c) 2011, Yannick Hold-Geoffroy and Julien-Charles Lévesque on behalf of Université Laval
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+#
+#    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
+#       in the documentation and/or other materials provided with the distribution.
+#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+import os
+import re
+
+from collections import namedtuple
+
+# Instruction Set: {'INSTR': ['Unite_fonctionnelle', 'operation']}
+# $0 = premier argument, $1 = 2e argument, etc.
+INSTRUCTION_SET = {'LD':     ('Load', '$0 = $1'),        # 0. Memory Read
+                   'L.D':    ('Load', '$0 = $1'),
+                   'SD':     ('Store', '$1 = $0'),       # 2. Memory Save
+                   'S.D':    ('Store', '$1 = $0'),
+                   'ADD.D':  ('Add', '$0 = $1 + $2'),    # 4. Floating point operations
+                   'SUB.D':  ('Add', '$0 = $1 - $2'),
+                   'MUL.D':  ('Mult', '$0 = $1 * $2'),
+                   'DIV.D':  ('Mult', '$0 = $1 / $2'),
+                   'DADD':   ('ALU', '$0 = $1 + $2'),    # 8. Integer operations
+                   'DADDU':  ('ALU', '$0 = $1 + $2'),
+                   'DADDI':  ('ALU', '$0 = $1 + $2'),
+                   'DADDIU': ('ALU', '$0 = $1 + $2'),
+                   'DSUB':   ('ALU', '$0 = $1 - $2'),
+                   'DSUBU':  ('ALU', '$0 = $1 - $2'),
+                   'DMUL':   ('ALU', '$0 = $1 * $2'),
+                   'DMULU':  ('ALU', '$0 = $1 * $2'),
+                   'DDIV':   ('ALU', '$0 = $1 / $2'),
+                   'DDIVU':  ('ALU', '$0 = $1 / $2'),
+                   'AND':    ('ALU', '$0 = $1 & $2'),
+                   'BEQZ':   ('Branch', '$2 = $1 if $0 == 0 else $2'),      # 19. Branching operations
+                   'BNEZ':   ('Branch', '$2 = $1 if $0 != 0 else $2'),
+                   'BEQ':    ('Branch', '$3 = $2 if $0 == $1 else $3'),
+                   'BNE':    ('Branch', '$3 = $2 if $0 != $1 else $3'),
+                   'J':      ('Branch', '$1 = $0')
+                   }
+
+
+begin_memory_re = re.compile('^-*\d+\(')
+memory_re = re.compile('^-*\d+\([RF][-]?\d+[.]?\d*\)$')
+#memory_re_double_reg = re.compile('^-*[RF][-]?\d+[.]?\d*\([RF][-]?\d+[.]?\d*\)$')
+memory_re_direct = re.compile('^-*\d+\([-]?\d+[.]?\d*\)$')
+registry_re = re.compile('([RF]\d{1,2})')
+
+
+def interpret_asm(source_file):
+    '''
+    Interpréteur de source assembleur du MIPS.
+
+    Entrée: Source en assembleur MIPS 64 bits.
+    Sortie: Une liste. Chaque élément de la liste est une ligne de code.
+
+    Ces éléments sont des tuples de la forme suivante::
+        (['Unite_fonctionnelle', 'Operation_a_effectuer'], ['Param1', 'Param2', ...])
+
+    '''
+    print('Lecture du fichier source %s en cours...' % source_file)
+    f = open(source_file, 'r')
+    source = f.readlines()
+    print('Fichier source lu avec succès!')
+
+    # TODO: remove self.flow & self.labels
+
+    # Retrait des caractères de fin de ligne et des commentaires
+    source = list(map(lambda x: x.strip().split(';')[0], source))
+    print(source)
+
+    # Gestion des labels. Après cette opération, les labels sont
+    # enlevés de la source
+    source, labels = parse_labels(source)
+    print(source)
+
+    # Mapping des opérations dans la table en haut du fichier.
+    # Retourne une liste de tuple [(instruction_reference, parametres), ...]
+    source = parse_instructions(source, labels)
+    print(source)
+
+    return source
+
+
+def parse_labels(source):
+    '''
+    Cherche les labels dans le code et les assigne au dictionnaire labels de
+    la classe sous la forme :
+    labels['nom_du_label'] = numero_de_l'operation
+    ou
+    {'nom_du_label': numero_de_l'operation, 'nom_du_label_2': numero_de_l'operation_2}
+    '''
+    # Sectionnement de la source à la première césure de chaque ligne sous
+    # forme de tokens
+    # ie. [['Loop:', 'L.D    F0,0(R1)'], ['ADD.D', 'F4,F0,F2'], ['S.D', 'F4,0(R1)'], ['DADDIU', 'R1,R1,#-8'], ['BNE', 'R1,R2,Loop']]
+    source = [[token.strip() for token in ligne.split(None, 1)] for ligne in source]
+    labels = {}
+
+    # Population du dictionnaire des labels
+    for index, operation in enumerate(source):
+        # Trouver un label
+        if operation[0][-1] == ':':
+            # Assigner dans le dictionnaire des labels la ligne à laquel
+            # ce label est.
+            labels[operation[0][:-1]] = index
+
+    # Effacement des labels dans le source
+    for index in labels.values():
+        source[index] = source[index][1:]
+
+    # Retour à une forme solide et opaque des lignes
+    # ie. ['L.D    F0,0(R1)', 'ADD.D F4,F0,F2', 'S.D F4,0(R1)', 'DADDIU R1,R1,#-8', 'BNE R1,R2,Loop']
+    return [' '.join(a) for a in source], labels
+
+
+def parse_instructions(source, labels):
+    '''
+    Convertis une source composée des lignes de codes, labels exclus, en
+    une liste de tuples représentant l'instruction puis ses paramètres opaques.
+
+    Chaque instruction est un namedtuple défini tel que suit :
+        Instruction(UNITE_FCN, ACTION/OPERATION, OPERANDES)
+
+    Ex:
+    instructions = [
+    #instruction #1
+    Instruction(funit='Load', action='$0 = $1', operands=['F0', '0(R1)']),
+    #instruction #2.
+    Instruction(funit='Add', action='$0 = $1 + $2', operands=['F4', 'F0', 'F2']),
+    ... etc.
+    ]
+    '''
+    instructions = []
+    Instruction = namedtuple('Instruction', ['operation', 'funit', 'action', 'operands'])
+
+    # Remplacement des labels par les # de ligne. [ format #CHIFFRE pour simplifier l'évaluation ]
+    for line_num, line in enumerate(source):
+        elems = line.split()
+        operation = elems[0].upper()
+        instr = INSTRUCTION_SET[operation]
+
+        operands = elems[1].split(',')
+
+        #Remplace les labels par des # de ligne.
+        for i, o in enumerate(operands):
+            if o in labels.keys():
+                operands[i] = ['#' + str(labels[o])]
+
+        instructions.append(Instruction(operation, instr[0], instr[1], operands))
+
+    return instructions
+
+
+if __name__ == '__main__':
+    import sys
+    sys.stderr.write('Ce module n\'est pas utilisable seul.')
+    sys.exit(-1)
