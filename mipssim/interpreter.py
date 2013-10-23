@@ -21,7 +21,8 @@
 import os
 import re
 
-from collections import namedtuple
+#local imports
+from components import Instruction
 
 # Instruction Set: {'INSTR': ['Unite_fonctionnelle', 'operation']}
 # $0 = premier argument, $1 = 2e argument, etc.
@@ -143,7 +144,6 @@ def parse_instructions(source, labels):
     ]
     '''
     instructions = []
-    Instruction = namedtuple('Instruction', ['operation', 'funit', 'action', 'operands'])
 
     # Remplacement des labels par les # de ligne. [ format #CHIFFRE pour simplifier l'évaluation ]
     for line_num, line in enumerate(source):
