@@ -20,13 +20,14 @@
 
 import sys
 
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, deque
 from xml.dom.minidom import parse
 
+#local imports
 import trace
 import interpreter as interp
 from interpreter import begin_memory_re, memory_re, memory_re_direct, registry_re
-from components import FuncUnit, ROBEntry, Registers
+from components import FuncUnit, ROBEntry, ROB, Registers, State
 
 
 class Simulator:
@@ -43,7 +44,7 @@ class Simulator:
         self.new_PC = None
         self.mem = []
         self.mem_size = 0
-        self.ROB = []
+        self.ROB = ROB(maxlen=24)
         self.PC = 0
         self.RS = OrderedDict()
 
@@ -75,14 +76,8 @@ class Simulator:
         * 2 = Une erreur non-prévue s'est produite.
         '''
 
-        try:
-            while self.step() == 0:
-                self.horloge += 1
-        except SimulationException as err_desc:
-            # Une erreur a été détectée
-            sys.stderr.write('Une erreur a été détectée lors de l\'exécution du \
-                programme à la ligne : %s' % err_desc)
-            return 1
+        while self.step() == 0:
+            self.horloge += 1
 
         #L'exécution s'est complétée sans problème.
         print('Fin des instructions.')
@@ -264,27 +259,27 @@ class Simulator:
                 params[1] = in_instr[1][-1]
         return self.exec_instr((in_instr[0], params))
 
-    def resolve_variables(self, in_param, memory_resolve=True):
+    def resolve_variables(self, param, memory_resolve=True):
         '''
         Permet de transformer les variables du code MIPS en variables Python.
         '''
-        output = in_param
+        output = param
 
         #Mémoire
         if memory_resolve == True:
             if memory_re.match(output) is not None:
                 import IPython; IPython.embed()
-                output = 'self.memoire[int(%s)]' % ('(int(' + str(output.split('(')[1][:-1]) + ') + ' + str(output.split('(')[0]) + ')/8')
+                output = 'self.mem[int(%s)]' % ('(int(' + str(output.split('(')[1][:-1]) + ') + ' + str(output.split('(')[0]) + ')/8')
 
             # Mémoire directe
             if memory_re_direct.match(output) is not None:
-                output = 'self.memoire[int(%s)]' % ('(' + str(output.split('(')[1][:-1]) + ' + ' + str(output.split('(')[0]) + ')/8')
+                output = 'self.mem[int(%s)]' % ('(' + str(output.split('(')[1][:-1]) + ' + ' + str(output.split('(')[0]) + ')/8')
 
         # Nombre direct
         output = output[1:] if output[0] == '#' else output
 
         # Registres
-        output = registry_re.sub(r'self.registre[\1]', output)
+        output = registry_re.sub(r'self.regs[\1]', output)
 
         return output
 
@@ -418,9 +413,9 @@ class Simulator:
         '''
         #Référence vers le conteneur pour toutes les unités fonctionnelles du type courant
         cur_instruction = self.instructions[self.PC]
-        func_unit_type_ref = self.func_units[cur_instruction.funit]
+        func_unit_type_ref = self.RS[cur_instruction.funit]
         #Vérifie si une unité fonctionnelle du type requis est libre
-        funit_idx = self.find_funit(func_unit_ref, cur_instruction.funit)
+        funit_idx = self.find_funit(func_unit_type_ref, cur_instruction.funit)
 
         #Tester si un branch n'est pas déjà dans le ROB, le cas échéant ne pas lancer
         # de spéculation multiple
@@ -432,15 +427,16 @@ class Simulator:
                     return
 
         # Attribuer l'opération à une station de réservation si possible
-        if funit_idx > -1:
+        if funit_idx > -1 and self.ROB.check_free_entry():
             cur_funit = func_unit_type_ref[funit_idx]
             cur_funit.reset()
 
-            cur_rob_entry = ROBEntry(cur_instruction, None, None)
+            #Occuper une place dans le ROB
+            rob_i, cur_rob_entry = self.ROB.get_free_entry()
+            cur_rob_entry.instr = cur_instruction
+            cur_rob_entry.state = State.ISSUE
 
-            # Ajouter l'info au ROB
-            self.ROB.append(cur_rob_entry, None, None)
-            # Occuper l'unité fonctionnelle
+            #Occuper l'unité fonctionnelle
             cur_funit.occupy(cur_instruction.operation)
 
             # Vérifier les paramètres des opérations voir s'ils vont dans le vj/vk ou qj/qk
@@ -459,46 +455,42 @@ class Simulator:
                 to_check = [1, 2]
 
             # Trouver Vj/Vk ou Qj/Qk
-            first = True
-            for param_index, a in enumerate(to_check):
-                if len(cur_instruction.operands) < a + 1:
+            first_operand = True
+            for i in to_check:
+                if len(cur_instruction.operands) < i + 1:
                     continue
-                param = cur_instruction.operands[a]
+                param = cur_instruction.operands[i]
 
                 # On résoud la référence
                 temp = self.resolve_variables(param, False)
 
                 # Est-ce que on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk
-                valeur = '#'
-                try:
-                    # Ne pas résoudre les accès mémoire en ce moment
-                    if memory_re.match(param) is not None:
-                        uf = eval(temp.split('(', 1)[1].rstrip(' )'))
-                    else:
-                        uf = eval(temp)
+                value = '#'
+                # Ne pas résoudre les accès mémoire en ce moment
+                if memory_re.match(param) is not None:
+                    uf = eval(temp.split('(', 1)[1].rstrip(' )'))
+                else:
+                    uf = eval(temp)
 
-                    numeric = False
-                    if isinstance(uf, str) and '&' in uf:
-                        rob = list(zip(*self.ROB))[0]
-                        if uf[1:] in rob and self.ROB[rob.index(uf[1:])][1] is not None:
-                            numeric = True
-                            numeric_val = eval(self.ROB[rob.index(uf[1:])][1][0])
-                            if memory_re.match(param) is not None:
-                                valeur = '%s(%s)' % (temp.split('(')[0], numeric_val)
-                            else:
-                                valeur = numeric_val
-
-                    if not numeric:
+                numeric = False
+                if isinstance(uf, str) and '#' in uf:
+                    rob = list(zip(*self.ROB))[0]
+                    if uf[1:] in rob and self.ROB[rob.index(uf[1:])][1] is not None:
+                        numeric = True
+                        numeric_val = eval(self.ROB[rob.index(uf[1:])][1][0])
                         if memory_re.match(param) is not None:
-                            valeur = '%s(%s)' % (temp.split('(')[0], uf)
+                            valeur = '%s(%s)' % (temp.split('(')[0], numeric_val)
                         else:
-                            valeur = uf
-                except BaseException as e:
-                    # RAISE ERROR
-                    print('Erreur lors de l\'execution: %s - %s' % (temp, e))
+                            valeur = numeric_val
 
-                if premier == True:
-                    if isinstance(valeur, str) and '&' in valeur:
+                if not numeric:
+                    if memory_re.match(param) is not None:
+                        valeur = '%s(%s)' % (temp.split('(')[0], uf)
+                    else:
+                        valeur = uf
+
+                if first == True:
+                    if isinstance(valeur, str) and '#' in valeur:
                         #Utiliser la valeur de format '&UNITE_FCT' plutôt
                         #que le numéro de registre directement
                         cur_funit['qj'] = valeur
@@ -513,7 +505,7 @@ class Simulator:
                     else:
                         cur_funit['qk'] = None
                         cur_funit['vk'] = valeur
-                premier = False
+                first = False
 
             if cur_funit['qj'] == None and cur_funit['qk'] == None:
                 # On part l'exécution
@@ -558,13 +550,17 @@ class Simulator:
             # Aucune unité fonctionnelle libre trouvée, on est COINCÉS COMME DES RATS et on attend.
             self.new_pc = self.PC
 
-    def find_unite_fct(self, unite, nom_unite):
-        for index, a in enumerate(unite):
-            str_unite = nom_unite + str(index + 1)
-            if a['busy'] == False and str_unite not in self.unite_sanctionnement_now and len(list(filter(lambda r: r[0] == str_unite, self.ROB))) == 0:
-                return index
-        else:
-            return None
+    def find_funit(self, funits, name):
+        '''
+        Prend une liste d'unités fonctionnelles en entrée, cherche une unité qui est n'est pas
+        occupée (variable busy à False).
+        '''
+        for i, funit in enumerate(funits):
+            if funit.busy or funit.name in self.commit_now:
+                continue
+            elif len(list(filter(lambda e: e == str_unite, self.ROB))) == 0:
+                return i
+        return None
 
 
     def load_config(self, config_file):
