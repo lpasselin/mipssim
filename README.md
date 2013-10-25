@@ -2,7 +2,7 @@
 
 Simulateur de code MIPS conçu pour le cours GIF-3000 à l'Université Laval. Testé avec Python 2.7 et 3.3.
 
-:::text
+    :::text
      usage: mipssim.py [-h] config_file source_file [trace_file]
           
      Simulateur de MIPS en Python (2.7+). Testé avec Python 2.7 et 3.3.
