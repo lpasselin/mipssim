@@ -1,24 +1,6 @@
-
 # -*- coding: utf-8 -*-
-
 # Copyright (c) 2013, Julien-Charles Lévesque on behalf of Université Laval
 # All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
-#
-#    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
-#       in the documentation and/or other materials provided with the distribution.
-#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 
 from collections import OrderedDict, namedtuple
 
@@ -31,7 +13,7 @@ funit: nom de l'unité fonctionnelle exécutant ce type d'instruction
 action: type d'action réalisé par l'instruction sous forme mathématique
 operands: opérandes de l'instruction (nombre varie selon l'instruction)
 '''
-Instruction = namedtuple('Instruction', ['operation', 'funit', 'action', 'operands'])
+Instruction = namedtuple('Instruction', ['addr', 'code', 'funit', 'action', 'operands', 'operator'])
 
 
 #Enumération pour les états des instructions dans le ROB
@@ -45,12 +27,20 @@ class ROBEntry:
      Hennessy (3ème édition).
     '''
 
-    def __init__(self, instr=None, dest=None, value=None):
-        self.busy = True
+    def __init__(self, i, instr=None, dest=None, value=None):
+        self.i = i
         self.instr = instr
         self.state = State.UNUSED
         self.dest = dest
         self.value = value
+        self.ready = False
+
+    def free(self):
+        self.ready = False
+        self.state = State.UNUSED
+        self.dest = None
+        self.value = None
+        self.instr = None
 
     def __repr__(self):
         #Won't preserve ordering.
@@ -67,7 +57,10 @@ class ROB:
         self.start = 0
         self.end = 0
         self.count = 0
-        self.entries = [ROBEntry() for i in range(self.maxlen)]
+        self.entries = [ROBEntry(i) for i in range(self.maxlen)]
+
+    def reset(self):
+        self.__init__(self.maxlen)
 
     def get_free_entry(self):
         '''
@@ -91,16 +84,26 @@ class ROB:
         '''
         La seule fonction utilisable pour retirer une entrée du ROB, soit de retirer la tête.
         '''
-        self.count -= 1
-        self.start = (self.start + 1) % self.maxlen
-
+        if self.count > 0:
+            self.entries[self.start].free()
+            self.count -= 1
+            self.start = (self.start + 1) % self.maxlen
 
     def __getitem__(self, index):
         return self.entries[index]
+        
+    def __iter__(self):
+        i = self.start
+        while i != self.end:
+            yield self.entries[i]
+            i = (i + 1) % self.maxlen
+
+    def __len__(self):
+        return self.count
 
     def __repr__(self):
         # On ne veut pas afficher d'indices 0
-        return str([(i + 1, e) for i, e in enumerate(self.entries) if e.state != State.UNUSED])
+        return '\n'.join([str((i + 1, e)) for i, e in enumerate(self.entries) if e.state != State.UNUSED])
 
 
 class FuncUnit:
@@ -139,11 +142,11 @@ class FuncUnit:
         self.dest = None
         self.time = None
         self.A = None
-        self.op = None
+        self.instr = None
 
-    def occupy(self, op):
+    def occupy(self, instr):
         self.reset(busy=True)
-        self.op = op
+        self.instr = instr
 
     def __repr__(self):
         #Won't preserve ordering.
@@ -171,10 +174,21 @@ class Registers(OrderedDict):
     def __init__(self):
         '''Initialisation des registres.'''
         super(Registers, self).__init__(self)
+        
+        self.stat = OrderedDict() #Copie servant uniquement à savoir si un registre est utilisé
+        #ou non, requis pour annuler des instructions en cas de branchement tout en permettant
+        #d'écrire dans les registres aux commits.
+        
+        #Remplissage des registres
         names = ['R%i' % (i) for i in range(32)] + ['F%i' % (i) for i in range(32)]
         for n in names:
             #Bypass les vérifications pour pouvoir assigner 0 au registre R0
-            super(Registers, self).__setitem__(n, 0)
+            self.__setitem__(n, 0, bypass=True)
+            self.stat[n] = None
+            
+    def reset_stat(self):
+        for k, v in self.stat.items():
+            self.stat[k] = None
 
     def __repr__(self):
         '''Affiche le contenu des registres.'''
@@ -185,12 +199,12 @@ class Registers(OrderedDict):
         return super(Registers, self).__getitem__(item)
 
     @check_valid_register
-    def __setitem__(self, item, value):
+    def __setitem__(self, item, value, bypass=False):
         '''
         Assigne les valeurs des registres.
         '''
         # Capturer un essai d'écriture sur R0
-        if item == 'R0':
+        if not bypass and item == 'R0':
             raise Exception('Impossible d\'utiliser R0, ce '
                                       'registre est une constante.')
 
@@ -211,4 +225,29 @@ class Registers(OrderedDict):
         super(Registers, self).__setitem__(item, value)
 
 
+class Memory():
+    '''
+    Système de mémoire du simulateur MIPS.
+    '''
+    def __init__(self, mem_size, init_values):
+        self.data = [0.0] * mem_size
+        for i, v in enumerate(init_values):
+            self.data[i] = float(v)
+        
+    def __repr__(self):
+        '''Affiche le contenu de la mémoire.'''
+        return ', '.join(['%s' % d for d in self.data])
 
+    def __getitem__(self, index):
+        i = int(index / 8)
+        if i - index / 8 > 1e-4:
+            raise Exception('Indexation invalide de la mémoire (%i), doit être un multiple de 8' %
+              index)
+        return self.data[i]
+
+    def __setitem__(self, index, value):
+        i = int(index / 8)
+        if i - index / 8 > 1e-4:
+            raise Exception('Indexation invalide de la mémoire (%i), doit être un multiple de 8' %
+              index)
+        self.data[i] = float(value)

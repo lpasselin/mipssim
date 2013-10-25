@@ -24,27 +24,27 @@ import re
 #local imports
 from components import Instruction
 
-# Instruction Set: {'INSTR': ['Unite_fonctionnelle', 'operation']}
+# Instruction Set: {'INSTR': ['Unite_fonctionnelle', 'action', 'operator']}
 # $0 = premier argument, $1 = 2e argument, etc.
 INSTRUCTION_SET = {'LD':     ('Load', '$0 = $1'),        # 0. Memory Read
                    'L.D':    ('Load', '$0 = $1'),
                    'SD':     ('Store', '$1 = $0'),       # 2. Memory Save
                    'S.D':    ('Store', '$1 = $0'),
-                   'ADD.D':  ('Add', '$0 = $1 + $2'),    # 4. Floating point operations
-                   'SUB.D':  ('Add', '$0 = $1 - $2'),
-                   'MUL.D':  ('Mult', '$0 = $1 * $2'),
-                   'DIV.D':  ('Mult', '$0 = $1 / $2'),
-                   'DADD':   ('ALU', '$0 = $1 + $2'),    # 8. Integer operations
-                   'DADDU':  ('ALU', '$0 = $1 + $2'),
-                   'DADDI':  ('ALU', '$0 = $1 + $2'),
-                   'DADDIU': ('ALU', '$0 = $1 + $2'),
-                   'DSUB':   ('ALU', '$0 = $1 - $2'),
-                   'DSUBU':  ('ALU', '$0 = $1 - $2'),
-                   'DMUL':   ('ALU', '$0 = $1 * $2'),
-                   'DMULU':  ('ALU', '$0 = $1 * $2'),
-                   'DDIV':   ('ALU', '$0 = $1 / $2'),
-                   'DDIVU':  ('ALU', '$0 = $1 / $2'),
-                   'AND':    ('ALU', '$0 = $1 & $2'),
+                   'ADD.D':  ('Add', '$0 = $1 + $2', '+'),    # 4. Floating point operations
+                   'SUB.D':  ('Add', '$0 = $1 - $2', '-'),
+                   'MUL.D':  ('Mult', '$0 = $1 * $2', '*'),
+                   'DIV.D':  ('Mult', '$0 = $1 / $2', '/'),
+                   'DADD':   ('ALU', '$0 = $1 + $2', '+'),    # 8. Integer operations
+                   'DADDU':  ('ALU', '$0 = $1 + $2', '+'),
+                   'DADDI':  ('ALU', '$0 = $1 + $2', '+'),
+                   'DADDIU': ('ALU', '$0 = $1 + $2', '+'),
+                   'DSUB':   ('ALU', '$0 = $1 - $2', '-'),
+                   'DSUBU':  ('ALU', '$0 = $1 - $2', '-'),
+                   'DMUL':   ('ALU', '$0 = $1 * $2', '*'),
+                   'DMULU':  ('ALU', '$0 = $1 * $2', '*'),
+                   'DDIV':   ('ALU', '$0 = $1 / $2', '/'),
+                   'DDIVU':  ('ALU', '$0 = $1 / $2', '/'),
+                   'AND':    ('ALU', '$0 = $1 & $2', '&'),
                    'BEQZ':   ('Branch', '$2 = $1 if $0 == 0 else $2'),      # 19. Branching operations
                    'BNEZ':   ('Branch', '$2 = $1 if $0 != 0 else $2'),
                    'BEQ':    ('Branch', '$3 = $2 if $0 == $1 else $3'),
@@ -52,12 +52,7 @@ INSTRUCTION_SET = {'LD':     ('Load', '$0 = $1'),        # 0. Memory Read
                    'J':      ('Branch', '$1 = $0')
                    }
 
-
-begin_memory_re = re.compile('^-*\d+\(')
 memory_re = re.compile('^-*\d+\([RF][-]?\d+[.]?\d*\)$')
-#memory_re_double_reg = re.compile('^-*[RF][-]?\d+[.]?\d*\([RF][-]?\d+[.]?\d*\)$')
-memory_re_direct = re.compile('^-*\d+\([-]?\d+[.]?\d*\)$')
-registry_re = re.compile('([RF]\d{1,2})')
 
 
 def interpret_asm(source_file):
@@ -75,8 +70,6 @@ def interpret_asm(source_file):
     f = open(source_file, 'r')
     source = f.readlines()
     print('Fichier source lu avec succès!')
-
-    # TODO: remove self.flow & self.labels
 
     # Retrait des caractères de fin de ligne et des commentaires
     source = list(map(lambda x: x.strip().split(';')[0], source))
@@ -152,13 +145,16 @@ def parse_instructions(source, labels):
         instr = INSTRUCTION_SET[operation]
 
         operands = elems[1].split(',')
+        operator = None
+        if len(instr) > 2:
+            operator = instr[2]
 
         #Remplace les labels par des # de ligne.
         for i, o in enumerate(operands):
             if o in labels.keys():
-                operands[i] = ['#' + str(labels[o])]
+                operands[i] = '#' + str(labels[o])
 
-        instructions.append(Instruction(operation, instr[0], instr[1], operands))
+        instructions.append(Instruction(line_num, operation, instr[0], instr[1], operands, operator))
 
     return instructions
 

@@ -6,10 +6,8 @@
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 #
 #    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer
-#       in the documentation and/or other materials provided with the distribution.
-#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
+#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 #
 # THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
 # THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
@@ -26,8 +24,9 @@ from xml.dom.minidom import parse
 #local imports
 import trace
 import interpreter as interp
-from interpreter import begin_memory_re, memory_re, memory_re_direct, registry_re
-from components import FuncUnit, ROBEntry, ROB, Registers, State
+from interpreter import memory_re
+import components
+from components import State
 
 
 class Simulator:
@@ -37,19 +36,19 @@ class Simulator:
     Prends le code retourné par l'interpreteur et le fais exécuter sur la
     configuration entrée.
     '''
-    def __init__(self, config_file, source_file, trace_file='', trace_mode='t'):
+    def __init__(self, config_file, source_file, trace_file='', trace_mode='t', debug=False):
         #Initialisation des variables membres
         self.horloge = 0
         self.stall = False
         self.new_PC = None
-        self.mem = []
-        self.mem_size = 0
-        self.ROB = ROB(maxlen=24)
+        self.ROB = components.ROB(maxlen=24)
         self.PC = 0
         self.RS = OrderedDict()
 
+        self.debug = debug
+
         #Initialisation des registres
-        self.regs = Registers()
+        self.regs = components.Registers()
 
         #Lecture de la configuration et du code source à exécuter
         self.load_config(config_file)
@@ -60,7 +59,7 @@ class Simulator:
             if trace_mode =='t':
                 self.trace = trace.TextTrace(trace_file)
             elif trace_mode == 'l':
-                self.trace = trace.LatexTrace(trace_file)
+                self.trace = trace.LaTeXTrace(trace_file)
         else:
             self.trace = None
 
@@ -87,30 +86,33 @@ class Simulator:
         '''
         Effectue une itération de la simulation.
 
-        * Retourne 0 si l'opération s'est déroulée avec succès et l'exécution \
+        * Retourne 0 si l'opération s'est déroulée avec succès et l'exécution
         n'est pas terminée.
-        * Retourne 1 si l'opération s'est déroulée avec succès et l'exécution \
+        * Retourne 1 si l'opération s'est déroulée avec succès et l'exécution
         est terminée
 
         Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         '''
+        if self.debug:
+            print('Coup d\'horloge - PC = %s - Stall = %s' % (
+                str(self.PC), str(self.stall)))
 
-        print('Coup d\'horloge - PC = %s - Stall = %s' % (
-          str(self.PC), str(self.stall)))
+        #Les opérations sont inversées pour éviter d'accomplir plusieurs actions sur une même
+        # instruction dans un seul coup d'horloge.
+        
+        #On sanctionne l'instruction via le ROB ( Premier élément de celui-ci )
+        self.commit_instr()
 
-        # On sanctionne l'instruction via le ROB ( Premier élément de celui-ci )
-        self.sanctionnement_rob()
-
-        # Décrémentation du temps sur les unités fonctionnelles
+        #Décrémentation du temps sur les unités fonctionnelles
         self.decrement_time()
 
         # Gestion des bulles et de la fin du programme
-        if self.stall == True or self.PC >= len(self.instructions):
-            print('Debug: Coup d\'horloge stallé.')
+        if self.stall == True or self.PC + 1 > len(self.instructions):
+            print('Aucune instruction lancée.')
         else:
             self.issue_instr()
 
-        # Avancement du Issue/Program Counter (PC)
+        #Avancement du Issue/Program Counter (PC)
         if self.new_PC != None:
             self.PC = self.new_PC
         self.new_PC = None
@@ -120,207 +122,155 @@ class Simulator:
             return 1
         else:
             if self.trace:
-                self.trace.mise_a_jour(self)
+                self.trace.update(self)
             return 0
 
-    def sanctionnement_rob(self):
+    def commit_instr(self):
         '''
         Sanctionne les opérations dont le calcul est terminé dans l'ordre de lancement.
         Seule l'instruction à la tête du ROB peut être sanctionnée.
         '''
-        if len(self.ROB) > 0 and self.ROB[0][1] != None:
-            if self.verbose:
-                print('Execution: %s' % self.ROB[0][1][1])
-            architecture_proxy = {'self': self}
-
-            # Quand une instruction est sanctionnée, s'assurer qu'elle n'écrit pas
-            # une valeur qui est encore dans le ROB comme fixe (ie. registre)
-            ecrire_registre = True
-            if self.ROB[0][1][1].split('=')[0].strip().find('self.registre') == 0:
-                exec(self.ROB[0][1][1].strip().replace('] ', 'T] ', 1), architecture_proxy)
-                #Si le registre dans lequel cette instruction doit écrire attend
-                #une valeur en provenance d'une autre unité fonctionnelle, il ne
-                #faut pas écrire par dessus.
-
-                #Contenu du registre à l'adresse d'écriture
-                reg_str = self.ROB[0][1][1].split(' =')[0]
-                reg = reg_str.split('\'')[1]
-                val_reg = self.registre[reg]
-
-                if isinstance(val_reg, str) and val_reg[1:] != self.ROB[0][0]:
-                    #Il ne faut pas écrire par dessus le &UF
-                    ecrire_registre = False
-
-            else:
-                # Vérifier qu'aucune opération pending wants to write to this register
-                for b in [a for a in self.unite_fonctionnelle.list() if a not in ['Store', 'Branch']]:
-                    # Prendre une référence sur l'unité fonctionnelle qu'on analyse
-                    unite = self.unite_fonctionnelle[b]
-                    for c in range(len(unite)):
-                        # Vérifier que l'unité est actuellement utilisé :
-                        if unite[c]['busy'] == True:
-                            if unite[c]['op'].operands[0] == self.ROB[0][1][1].split('=')[0].strip().split('.')[-1]:
-                                exec('%s = %s' % (self.ROB[0][1][1].split('=')[0].strip(), '&' + str(b) + str(c)), architecture_proxy)
-                                self = ldict['self']
-
-            if ecrire_registre:
-                exec(self.ROB[0][1][1], architecture_proxy)
-
-            # Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre
-            # opération qui changerait le même registre
-            for b in list(zip(*self.ROB))[0]:
-                d = int(''.join([e for e in list(b) if e.isdigit()])) - 1
-                c = ''.join([e for e in list(b) if not e.isdigit()])
-                unite = self.unite_fonctionnelle[c][d]
-
-                # Arrêter si l'unité fonctionnelle actuellement analysée va réécrire ce registre
-                try:
-                    if unite['op'].operands[0].strip() == self.ROB[0][1][0].strip():
-                        break
-                except KeyError:
-                    pass
-                except TypeError:
-                    pass
-                # Vérifier que l'unité est actuellement utilisé :
-                if unite['busy'] == True:
-                    # Mettre à jour Qj/Qk pour Vj/Vk
-                    # On essaie de trouver l'élément (registre/mémoire) dans Qj/Qk. S'il est trouvé, on l'évalue
-                    resultat = eval(self.ROB[0][1][0])
-                    if unite['qj'] is not None and self.ROB[0][0] in unite['qj']:
-                        if begin_memory_re.match(unite['qj']) is not None:
-                            unite['vj'] = '%s(%s)' % (unite['qj'].split('(')[0], resultat)
-                        else:
-                            unite['vj'] = resultat
-                        unite['qj'] = None
-                    if unite['qk'] is not None and self.ROB[0][0] in unite['qk']:
-                        if begin_memory_re.match(unite['qk']) is not None:
-                            unite['vk'] = '%s(%s)' % (unite['qk'].split('(')[0], resultat)
-                        else:
-                            unite['vk'] = resultat
-                        unite['qk'] = None
+        rob_idx = self.ROB.start
+        rob_head = self.ROB[rob_idx]
+        if len(self.ROB) > 0 and rob_head.state == State.WRITE and rob_head.ready:
+            cur_rob_entry = self.ROB[rob_idx]
+            if self.debug:
+                print('Sanctionnement: %s' % cur_rob_entry)
+            
+            if cur_rob_entry.dest != None:
+                self.regs[cur_rob_entry.dest] = cur_rob_entry.value
+                #Si cette instruction était la seule (ou la dernière) à devoir écrire dans le ROB,
+                #effacer le marqueur à cet effet dans regs.stat
+                if self.regs.stat[cur_rob_entry.dest] != None:
+                     dest_i = self.regs.stat[cur_rob_entry.dest]
+                     if dest_i == rob_idx:
+                         self.regs.stat[cur_rob_entry.dest] = None
 
             # Gestion des branchs lors du sanctionnement
-            if self.ROB[0][0][:6] == 'Branch':
-                self.stall = False
-
-                if (self.new_pc != None and self.ROB[0][2] == False) or (self.new_pc == None and self.ROB[0][2] == True):
+            if rob_head.instr.funit == 'Branch':
+                if (rob_head.prediction != rob_head.value):
                     # Mauvaise spéculation
-                    # Remettre le pointeur à la bonne place
+                    #Si il y avait un blocage, il disparaît car on flush le ROB et les RS
+                    self.stall = False
+                    if rob_head.value:
+                        #On force la prise de ce branchement, on modifie directement le PC
+                        self.PC = int(rob_head.instr.operands[-1][1:])
+                    else:
+                        #On retourne à l'instruction suivant le branchement
+                        self.PC = rob_head.instr.addr + 1
+                    
+                    self.new_PC = None
+                    
+                    #Flush le ROB
+                    self.ROB.reset()
+    
+                    #Remet les drapeaux d'écriture des registres à None
+                    self.regs.reset_stat()
 
-                    self.PC = self.ROB[0][3]
-                    self.new_pc = None
-                    # Clean du ROB
-                    del self.ROB[:]
-                    # Clean des stations de réservation
-                    self.clean_unite_fonctionnelles()
-                    # Clean des registres
-                    self.registre['F0'] = self.registre['F0T']
-                    for a in range(1, 31):
-                        self.registre['R%d' % a] = self.registre['R%dT' % a]
-                        self.registre['F%d' % a] = self.registre['F%dT' % a]
+                    #Clean les stations de réservation
+                    self.reset_funits()
                 else:
                     # Spéculation réussite, aucun changement requis.
-                    self.new_pc = None
+                    self.new_PC = None
+            elif rob_head.instr.funit == 'Store':
+                #On écrit le résultat en mémoire.
+                self.mem[rob_head.addr] = rob_head.value
 
             # Une fois l'instruction sanctionnée, la retirer du ROB
-            if len(self.ROB) > 0:
-                self.ROB.pop(0)
+            self.ROB.free_head_entry()
 
-            # Si nous ne sommes pas en présence d'un aléa, incrémenter le
-            # compteur PC.
-            if self.stall == False:
-                self.new_pc = (self.PC + 1) if self.new_pc == None else self.new_pc
+            self.new_PC = (self.PC + 1) if self.new_PC == None else self.new_PC
 
-    def exec_tomasulo(self, in_unite):
+    def exec_instr(self, func_unit, rob_entry):
         '''
-        Prépare les variables pour l'exécution.
-        Traduit les vj/vk/etc en paramètres directs pour faire fonctionner la commande exec_instr().
+        Termine l'exécution de l'instruction dans ´func_unit´, place les résultas aux bons
+         endroits.
         '''
-
-        in_instr = in_unite['op']
-        # Résoudre les adresses d'accès mémoire
-        vj = in_unite['vj']
-        if len(in_instr[1]) > 2:
-            vk = in_unite['vk']
-        addr = None
-        params = [str(a) for a in [in_instr[1][0], in_unite['vj'], in_unite['vk']] if a != None]
-        # Cas spécial pour store où les unités sont inversés, Quix hax
-        if in_instr[0][0] == 'Load':
-            pass
-        elif in_instr[0][0] == 'Store':
-            params[0] = params[1]
-            params[1] = params[2]
-        elif in_instr[0][0] == 'Branch':
-            params[0] = params[1]
-            if len(params) > 2:
-                params[1] = params[2]
-                params[2] = in_instr[1][-1]
+        instr = rob_entry.instr
+        
+        if func_unit.name[:-1] == 'Branch':
+            #Déterminer si le branchement est pris.
+            branch = False
+            if instr.code == 'BEQ':
+                if func_unit.vj == func_unit.vk:
+                    branch = True
+            elif instr.code == 'BNE':
+                if func_unit.vj != func_unit.vk:
+                    branch = True
+            elif instr.code == 'BEQZ':
+                if func_unit.vk == 0:
+                    branch = True
+            elif instr.code == 'BNEZ':
+                if func_unit.vj != 0:
+                    branch = True
+            elif instr.code == 'J':
+                branch = True
             else:
-                params[1] = in_instr[1][-1]
-        return self.exec_instr((in_instr[0], params))
+                raise Exception('Instruction de branchement inconnue.')
+            #On place le comportement final du branchement dans le ROB.
+            rob_entry.value = branch
+            
+        elif func_unit.name[:-1] == 'Store':
+            #Store pas exécuté à cette étape, mais on connaît maintenant sa destination.
+            rob_entry.addr = func_unit.vk + func_unit.A #ne respecte pas la nomenclature Hennessy.
+        elif func_unit.name[:-1] == 'Load':
+            #Le load ne peut pas s'exécuter tant qu'il y a un store le précédent dans le ROB,
+            #donc rendu ici aucun problème.
+            rob_entry.value = self.mem[func_unit.A]
+        else:
+            if instr.operator == '+':
+                value = func_unit.vj + func_unit.vk
+            elif instr.operator == '-':
+                value = func_unit.vj - func_unit.vk
+            elif instr.operator == '/':
+                value = func_unit.vj / func_unit.vk
+            elif instr.operator == '*':
+                value = func_unit.vj * func_unit.vk
+            elif instr.operator == '&':
+                value = func_unit.vj & func_unit.vk
+            else:
+                raise Exception('Invalid operator.')
+            rob_entry.value = value
 
-    def resolve_variables(self, param, memory_resolve=True):
+        rob_entry.state = State.EXECUTE
+        return
+
+    def resolve_operand(self, operand):
         '''
         Permet de transformer les variables du code MIPS en variables Python.
         '''
-        output = param
-
-        #Mémoire
-        if memory_resolve == True:
-            if memory_re.match(output) is not None:
-                import IPython; IPython.embed()
-                output = 'self.mem[int(%s)]' % ('(int(' + str(output.split('(')[1][:-1]) + ') + ' + str(output.split('(')[0]) + ')/8')
-
-            # Mémoire directe
-            if memory_re_direct.match(output) is not None:
-                output = 'self.mem[int(%s)]' % ('(' + str(output.split('(')[1][:-1]) + ' + ' + str(output.split('(')[0]) + ')/8')
-
-        # Nombre direct
-        output = output[1:] if output[0] == '#' else output
-
-        # Registres
-        output = registry_re.sub(r'self.regs[\1]', output)
-
-        return output
-
-    def exec_instr(self, in_instr):
-        '''
-        Exécution de l'instruction sous forme (['Unite_fctionnelle', 'destination = source_$0 + source_$1'], [param1, param2, ...])
-        '''
-        code = in_instr[0][1]
-        if in_instr[0][0] == 'Branch':
-            params = in_instr[1] + ['self.new_pc', 'self.PC', 'ERROR', 'ERROR', 'ERROR']
+        
+        if operand[0] == '#':
+            value = int(operand[1:])
+            rob_i = None
+        elif operand[0] in ['R', 'F']:
+            #si rob_i != None, la valeur dans value doit être invalidée, car on ne peut l'utiliser
+            rob_i = self.regs.stat[operand]
+            value = self.regs[operand]
+            if rob_i != None:
+                rob_i = rob_i
+                value = None
         else:
-            params = in_instr[1] + ['ERROR', 'ERROR', 'ERROR', 'ERROR']
+            raise Exception('Opérande invalide.')
+        
+        return value, rob_i
+        
+    def resolve_memory_operand(self, operand):
+        mem_reg_value = 0
+        
+        reg_name = operand.split('(')[1].split(')')[0]
+        mem_adr_value, rob_i = self.resolve_operand(reg_name)
+        
+        #décalage immédiat de l'adresse: IMM(RX)
+        mem_imm = int(operand.split('(')[0])
+        
+        return mem_imm, mem_adr_value, rob_i
 
-        for index, a in enumerate(params):
-            params[index] = self.resolve_variables(a)
-
-        # Remplacer les placeholders
-        code = code.replace('$0', params[0]).replace('$1', params[1]).replace('$2', params[2]).replace('$3', params[3]).strip()
-
-        # Détection des erreurs (sens assez littéraire :)
-        if code.find('ERROR') > -1:
-            raise SimulationException([in_instr, 'Paramètre manquant'])
-
-        # Debug:
-        if self.verbose:
-            params = [a for a in params if a != 'ERROR']
-            valeurs = []
-            for a in params:
-                valeurs.append('%s=%s' % (a, code))
-            print('Debug: %s | %s' % (code.replace('self.', ''), str(valeurs)))
-
-        # Wrapping de l'opération en code Python
-        retour = '='.join(code.split('=')[1:])
-        return (retour, code.split('=')[0] + ' = ' + str(retour))
-
-    def clean_unite_fonctionnelles(self):
-        for a in self.unite_fonctionnelle.list():
+    def reset_funits(self):
+        for _, funit_type in self.RS.items():
             # Prendre une référence sur l'unité fonctionnelle qu'on analyse
-            unite = self.unite_fonctionnelle[a]
-            for b in range(len(unite)):
-                unite[b].reset()
+            for funit in funit_type:
+                funit.reset()
 
     def decrement_time(self):
         '''
@@ -329,11 +279,8 @@ class Simulator:
 
         Démarre les unités fonctionelles qui attendaient des données maintenant disponibles.
         '''
-        # Reset des writeback buffer
-        self.commit_now = []
-
         #Variable temporaire pour savoir si nous avons mis à jour une UF.
-        updated = [[False] * len(funit) for funit in self.RS]
+        updated = [[False] * len(funit) for _, funit in self.RS.items()]
 
         #Première passe, les instructions devant fournir des opérandes doivent le faire
         #avant de tenter d'exécuter quoi que ce soit.
@@ -350,41 +297,33 @@ class Simulator:
                         #Si on passe de 0 à -1, l'unité redevient disponible et le résultat est
                         # écrit (Write de Tomasulo)
                         if funit.time < 1:
-                            self.unite_sanctionnement_now.append(funit.name)
+                            #Le load se fait en deux étapes (voir p. 233 Hennesssy, Execute)
+                            if funit.name[:-1] == 'Load' and funit.vj is not None:
+                                #Il ne doit pas y avoir de store précédant le load dans le ROB
+                                store = False
+                                for e in self.ROB:
+                                    #Arrivé à l'instruction courante, cesse de parcourir le ROB
+                                    if e.i == funit.dest:
+                                        break
+                                    if e.instr.funit == 'Store':
+                                        store = True
+                                if not store:
+                                    funit.A = funit.vj + funit.A
+                                    funit.vj = None
+                                else:
+                                    #Sinon il faut attendre pour commencer le Load
+                                    continue
 
-                            # Prêt au sanctionnement
-                            retour = self.exec_tomasulo(funit)
+                            #Calcule le résultat
+                            exec_rob_entry = self.ROB[funit.dest]
+                            self.exec_instr(funit, exec_rob_entry)
 
+                            # Writeback Tomasulo, écriture de l'instruction sur le CDB et mise à
+                            # jour des stations de réservation
+                            self.writeback_tomasulo(funit, funit.dest, exec_rob_entry.value)
+                            
                             # Reset de l'unité fonctionnelle
                             funit.reset()
-
-                            import IPython; IPython.embed()
-                            # Modifier l'information dans le ROB. Trouver et mettre à jour l'élément
-                            # [1] du ROB avec retour
-                            for k, entry in reversed(enumerate(self.ROB)):
-                                if c[0] == a + str(b + 1):
-                                    self.ROB[index][1] = retour
-                                    break
-
-                            retour = eval(retour[0])
-                            # Writeback Tomasulo, écriture de l'instruction sur le CDB et mise à jour des stations de réservation
-                            for n in self.unite_fonctionnelle.list():
-                                uf = self.unite_fonctionnelle[n]
-                                for i in range(len(uf)):
-                                    # Mise à jour requise uniquement lorsque l'unité est occupée et attend après ses paramètres.
-                                    if uf[i]['busy'] and uf[i]['temps'] == None:
-                                        if uf[i]['qj'] is not None and uf[i]['qj'].find(nom_unite) != -1:
-                                            if begin_memory_re.match(uf[i]['qj']) is not None:
-                                                uf[i]['vj'] = '%s(%s)' % (uf[i]['qj'].split('(')[0], retour)
-                                            else:
-                                                uf[i]['vj'] = retour
-                                            uf[i]['qj'] = None
-                                        if uf[i]['qk'] is not None and uf[i]['qk'].find(nom_unite) != -1:
-                                            if begin_memory_re.match(uf[i]['qk']) is not None:
-                                                uf[i]['vk'] = '%s(%s)' % (uf[i]['qk'].split('(')[0], retour)
-                                            else:
-                                                uf[i]['vk'] = retour
-                                            uf[i]['qk'] = None
                         # Sinon, simplement la décrémenter de 1
                         else:
                             funit.time -= 1
@@ -400,7 +339,7 @@ class Simulator:
                         # On part l'exécution
                         # Exception pour l'unité fonctionnelle Mult
                         if unit_type == 'Mult':
-                            if funit.action.find('*') > -1:
+                            if funit.instr.action.find('*') > -1:
                                 funit.time = funit.latency
                             else:
                                 funit.time = funit.div_latency
@@ -430,14 +369,18 @@ class Simulator:
         if funit_idx > -1 and self.ROB.check_free_entry():
             cur_funit = func_unit_type_ref[funit_idx]
             cur_funit.reset()
+            
+            if self.debug:
+                print('Lance l\'instruction :', cur_instruction)
 
             #Occuper une place dans le ROB
-            rob_i, cur_rob_entry = self.ROB.get_free_entry()
+            cur_rob_i, cur_rob_entry = self.ROB.get_free_entry()
             cur_rob_entry.instr = cur_instruction
             cur_rob_entry.state = State.ISSUE
+            cur_rob_entry.ready = False
 
             #Occuper l'unité fonctionnelle
-            cur_funit.occupy(cur_instruction.operation)
+            cur_funit.occupy(cur_instruction)
 
             # Vérifier les paramètres des opérations voir s'ils vont dans le vj/vk ou qj/qk
             if cur_instruction.funit == 'Store':
@@ -459,96 +402,142 @@ class Simulator:
             for i in to_check:
                 if len(cur_instruction.operands) < i + 1:
                     continue
-                param = cur_instruction.operands[i]
+                raw_operand = cur_instruction.operands[i]
+                if self.debug:
+                    print('Traite l\'opérande ', raw_operand)
 
-                # On résoud la référence
-                temp = self.resolve_variables(param, False)
-
-                # Est-ce que on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk
-                value = '#'
+                # Est-ce qu'on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk
                 # Ne pas résoudre les accès mémoire en ce moment
-                if memory_re.match(param) is not None:
-                    uf = eval(temp.split('(', 1)[1].rstrip(' )'))
+                memory_operand = memory_re.match(raw_operand) is not None
+                if memory_operand:
+                    mem_imm, value, rob_i = self.resolve_memory_operand(raw_operand)
+                    cur_funit.A = mem_imm
                 else:
-                    uf = eval(temp)
-
-                numeric = False
-                if isinstance(uf, str) and '#' in uf:
-                    rob = list(zip(*self.ROB))[0]
-                    if uf[1:] in rob and self.ROB[rob.index(uf[1:])][1] is not None:
-                        numeric = True
-                        numeric_val = eval(self.ROB[rob.index(uf[1:])][1][0])
-                        if memory_re.match(param) is not None:
-                            valeur = '%s(%s)' % (temp.split('(')[0], numeric_val)
-                        else:
-                            valeur = numeric_val
-
-                if not numeric:
-                    if memory_re.match(param) is not None:
-                        valeur = '%s(%s)' % (temp.split('(')[0], uf)
+                    value, rob_i = self.resolve_operand(raw_operand)
+                    
+                #Si nous n'avons pas encore la valeur de cette opérande
+                if rob_i is not None:
+                    waiting_op_rob = self.ROB[rob_i]
+                    #Si cette instruction avait terminé de s'exécuter, on peut
+                    #prendre son résultat
+                    if waiting_op_rob.state == State.WRITE or waiting_op_rob.state == State.COMMIT:
+                        value = waiting_op_rob.value
+                        value_ready = True
+                    #Sinon on place un pointeur vers le ROB.
                     else:
-                        valeur = uf
-
-                if first == True:
-                    if isinstance(valeur, str) and '#' in valeur:
-                        #Utiliser la valeur de format '&UNITE_FCT' plutôt
+                        value = rob_i
+                        value_ready = False
+                #Sinon value contiendra une donnée valide et prête à utiliser.
+                else:
+                    value_ready = True
+                
+                if first_operand:
+                    if value_ready:
+                        cur_funit.vj = value
+                    else:
+                        #Utiliser la valeur de format '#ROB' plutôt
                         #que le numéro de registre directement
-                        cur_funit['qj'] = valeur
-                        cur_funit['vj'] = None
-                    else:
-                        cur_funit['qj'] = None
-                        cur_funit['vj'] = valeur
+                        cur_funit.qj = value
                 else:
-                    if isinstance(valeur, str) and '&' in valeur:
-                        cur_funit['qk'] = valeur
-                        cur_funit['vk'] = None
+                    if value_ready:
+                        cur_funit.vk = value
                     else:
-                        cur_funit['qk'] = None
-                        cur_funit['vk'] = valeur
-                first = False
-
-            if cur_funit['qj'] == None and cur_funit['qk'] == None:
+                        #Utiliser la valeur de format '#ROB' plutôt
+                        #que le numéro de registre directement
+                        cur_funit.qk = value
+                first_operand = False
+            
+            if cur_funit.qj == None and cur_funit.qk == None:
                 # On part l'exécution
                 # Exception pour l'unité fonctionnelle Mult
-                if cur_funit['op'].funit == 'Mult':
-                    if cur_funit['op'].action.find('*') > -1:
-                        cur_funit['temps'] = func_unit_ref.temps_execution
+                if cur_instruction.funit == 'Mult':
+                    if cur_instruction.action.find('*') > -1:
+                        cur_funit.time = cur_funit.latency
                     else:
-                        cur_funit['temps'] = func_unit_ref.temps_execution_division
+                        cur_funit.time = cur_funit.div_latency
                 else:
-                    cur_funit['temps'] = func_unit_ref.temps_execution
+                    cur_funit.time = cur_funit.latency
 
             # Trouver le paramètre de destination, qui est l'inverse des paramètres d'entrée (sauf pour le Branch)
             destination = [a for a in range(len(self.instructions[self.PC].operands)) if a not in to_check]
-            # Si l'opération est une branch, aucune destination à analyser - C'est un label.
-            # Si aucune destination trouvée, ie un Store ou  Branch, mettre à None
-            destination = destination[0] if len(destination) > 0 and self.instructions[self.PC].funit != 'Branch' else None
+            # Si l'opération est un branch, aucune destination à analyser - c'est un label.
+            # Si aucune destination trouvée, i.e. un Store ou  Branch, mettre à None
+            if len(destination) > 0 and self.instructions[self.PC].funit != 'Branch':
+                destination = destination[0]
+            else:
+                destination = None
 
-            # Mettre une référence dans la destination, soit &Unite_name
-            if destination is not None and destination is not []:
-                #Utiliser une notation débutant à 1.
-                destination_value = '&' + self.instructions[self.PC].funit + str(funit_idx + 1)
-                self.registre[self.instructions[self.PC].operands[destination]] = destination_value
+
+            # Mettre une référence dans la destination, soit #ROB
+            if destination is not None:
+                cur_rob_entry.dest = self.instructions[self.PC].operands[destination]
+                #Indiquer que le registre attend une valeur de `cur_rob_i`
+                self.regs.stat[self.instructions[self.PC].operands[destination]] = cur_rob_i
+
+            #La destination pour l'UF est toujours l'entrée ROB correspondante.
+            cur_funit.dest = cur_rob_i
+
+            if self.debug:
+                print('Debug: cur_rob_entry: ', cur_rob_entry)
+                print('Debug: cur_funit: ', cur_funit)
 
             # Passer à l'opération suivante s'il n'y a pas de branch qui s'est déjà effectué
             if self.instructions[self.PC].funit != 'Branch':
-                self.new_pc = (self.PC + 1) if self.new_pc == None else self.new_pc
+                self.new_PC = (self.PC + 1) if self.new_PC == None else self.new_PC
             else:
                 # Gestion des branchs / Spéculation
-                # Déterminer si le branchement des forward ou backward
-                forward_branch = (int(self.instructions[self.PC].operands[-1][1:]) > int(self.PC))
-                if (self.unite_fonctionnelle['Branch'].spec_forward and forward_branch) or (self.unite_fonctionnelle['Branch'].spec_backward and (forward_branch == False)):
-                    # Spéculation forward or backward ENGAGED
-                    self.new_pc = int(self.instructions[self.PC].operands[-1][1:])
-                    self.ROB[-1].append(True)
-                    self.ROB[-1].append(int(self.PC + 1))
+                # adresse du branchement
+                cur_funit.A = int(self.instructions[self.PC].operands[-1][1:])
+                
+                # Vrai si le branch va vers l'avant
+                forward_branch = cur_funit.A > int(self.PC)
+                
+                if (self.RS['Branch'][0].spec_forward == 'taken' and forward_branch)\
+                  or (self.RS['Branch'][0].spec_backward == 'taken' and not forward_branch):
+                    #Prédiction d'un branchement pris.
+                    cur_rob_entry.prediction = True #Hennessy ne spécifie pas où placer la prédiction
+                    self.new_PC = cur_funit.A
                 else:
-                    self.new_pc = int(self.PC + 1)
-                    self.ROB[-1].append(False)
-                    self.ROB[-1].append(int(self.instructions[self.PC].operands[-1][1:]))
+                    #Prédiction d'un branchement non pris.
+                    cur_rob_entry.prediction = False
+                    self.new_PC = int(self.PC + 1)
+
         else:
-            # Aucune unité fonctionnelle libre trouvée, on est COINCÉS COMME DES RATS et on attend.
-            self.new_pc = self.PC
+            # Aucune unité fonctionnelle libre trouvée ou bien plus de place dans le ROB
+            # On est coincés comme des rats, on attend.
+            self.new_PC = self.PC
+
+    def writeback_tomasulo(self, wb_funit, wb_rob_entry_idx, value=None):
+        '''
+        Une fois l'exécution d'une instruction terminée, il est possible de placer sa valeur 
+         sur le CDB et donc de mettre à jour les unités fonctionnelles attendant cette valeur.
+        '''
+        rob_entry = self.ROB[wb_rob_entry_idx]
+        #Le Store procède différemment
+        if wb_funit.name[:-1] == 'Store':
+            if wb_funit.qj == None: #Différent de la convention d'Hennessy... pas dramatique.
+                rob_entry.value = wb_funit.vj
+            else:
+                raise Exception('Not sure we should get there.')
+        else:
+            for _, funit_type in self.RS.items():
+                for funit in funit_type:
+                    #Mise à jour requise uniquement lorsque l'unité est occupée
+                    # et attend après ses paramètres.
+                    if funit.busy and funit.time == None:
+                        if funit.qj is not None and funit.qj == wb_rob_entry_idx:
+                            funit.vj = value
+                            funit.qj = None
+                        if funit.qk is not None and funit.qk == wb_rob_entry_idx:
+                            funit.vk = value
+                            funit.qk = None
+            rob_entry.value = value
+
+        #Writeback complété
+        rob_entry.ready = True
+        rob_entry.state = State.WRITE
+        #Libère l'unité fonctionnelle
+        wb_funit.reset()
 
     def find_funit(self, funits, name):
         '''
@@ -556,11 +545,11 @@ class Simulator:
         occupée (variable busy à False).
         '''
         for i, funit in enumerate(funits):
-            if funit.busy or funit.name in self.commit_now:
+            if funit.busy:
                 continue
-            elif len(list(filter(lambda e: e == str_unite, self.ROB))) == 0:
-                return i
-        return None
+            #TODO JCL: S'assurer que l'unité fonctionnelle n'est plus impliquée dans le ROB
+            return i
+        return -1
 
 
     def load_config(self, config_file):
@@ -585,7 +574,7 @@ class Simulator:
          additional_defaults={'div_latency': 1})
         self.RS['ALU'] = create_functional_units(xml_data, 'ALU', 1, 1)
         self.RS['Branch'] = create_functional_units(xml_data, 'Branch', 1, 1,
-         additional_defaults={'spec_forward': False, 'spec_backward': True})
+         additional_defaults={'spec_forward': 'not_taken', 'spec_backward': 'taken'})
 
         # Attribution des registres
         register_nodes = xml_data.getElementsByTagName('Registers')[0].childNodes
@@ -594,18 +583,25 @@ class Simulator:
             name = a[1].tagName
             value = a[1]._attrs['value'].value
             self.regs[name] = value
-            #TODO JCL: Seemed useless.
-            #self.registre[registre_name + 'T'] = registre_value
 
         # Attribution de la mémoire
         try:
             mem_init_values = xml_data.getElementsByTagName('Memory')[0].childNodes[0].data.strip().split()
         except:
             mem_init_values = []
-        self.mem_size = int(xml_data.getElementsByTagName('Memory')[0]._attrs['size'].value)
-        self.mem = [0.0] * self.mem_size
-        for i, v in enumerate(mem_init_values):
-            self.mem[i] = v
+        mem_size = int(xml_data.getElementsByTagName('Memory')[0]._attrs['size'].value)
+        self.mem = components.Memory(mem_size, mem_init_values)
+
+def update_operands(funit, rob_entry):
+    '''
+    Remplace les opérandes dans qk et/ou qj avec les valeurs nouvellement calculées.
+    '''
+    if funit.qj == rob_entry.i:
+        funit.vj = rob_entry.value
+        funit.qj = None
+    if funit.qk == rob_entry.i:
+        funit.vk = rob_entry.value
+        funit.qk = None
 
 
 def create_functional_units(xml_data, name, default_n, default_latency, additional_defaults={}):
@@ -616,7 +612,6 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
 
     fu_params = {}
     fu_params.update(additional_defaults)
-    fu_params['name'] = name
     #Les paramètres par défaut vont être écrasés.
     fu_params['n'] = default_n
     fu_params['latency'] = default_latency
@@ -631,7 +626,7 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
 
     #Générer les unités fonctionnelles
     n = fu_params.pop('n')
-    funits = [FuncUnit(**fu_params) for i in range(n)]
+    funits = [components.FuncUnit(name='%s%i'%(name, i+1), **fu_params) for i in range(n)]
     return funits
 
 

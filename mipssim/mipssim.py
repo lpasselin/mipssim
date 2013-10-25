@@ -31,7 +31,6 @@ if sys.version_info < (2, 7):
     print('est requise pour ce simulateur.')
     sys.exit(1)
 
-import config
 import interpreter as interp
 import simulator as sim
 
@@ -63,7 +62,7 @@ def main(config_file, source_file, trace_file=''):
         print('Simulation terminée avec succès.')
     else:
         print('Une erreur est survenue lors de l\'exécution du programme.')
-    return retour
+    return err
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simulateur de MIPS en Python (2.7+). Testé avec Python 2.7 et 3.3.')
