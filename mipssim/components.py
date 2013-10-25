@@ -21,7 +21,7 @@ class State:
         UNUSED, ISSUE, EXECUTE, WRITE, COMMIT = range(0,5)
 
 
-class ROBEntry:
+class ROBEntry(object):
     '''
     Entrée dans la table de réordonnancement. Voir la section 3.7 (Hardware-based speculation) de
      Hennessy (3ème édition).
@@ -47,7 +47,7 @@ class ROBEntry:
         return str(self.__dict__)
 
 
-class ROB:
+class ROB(object):
     '''
     Tampon de réordonnancement, contient essentiellement une liste d'instances de `ROBEntry`
      et quelques fonctions pour faciliter l'utilisation.
@@ -106,7 +106,7 @@ class ROB:
         return '\n'.join([str((i + 1, e)) for i, e in enumerate(self.entries) if e.state != State.UNUSED])
 
 
-class FuncUnit:
+class FuncUnit(object):
     '''
     Unité fonctionnelle. Encore une fois, consulter le chapitre 3 de Hennessy pour des
      explications détaillées.
@@ -225,7 +225,7 @@ class Registers(OrderedDict):
         super(Registers, self).__setitem__(item, value)
 
 
-class Memory():
+class Memory(object):
     '''
     Système de mémoire du simulateur MIPS.
     '''
