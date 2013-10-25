@@ -23,8 +23,24 @@ import os
 from output.prettytable import PrettyTable
 from interpreter import INSTRUCTION_SET, memory_re
 
+noneify = lambda x: x if x != None else ''
 
-class TextFileTrace:
+def get_vars_and_subvars(var_names, extractee):
+    row = []
+    for v in var_names:
+        if '.' in v:
+            temp = extractee.__getattribute__(v.split('.')[0])
+            try:
+                elem = temp.__getattribute__(v.split('.')[1])
+            except:
+                elem = None
+        else:
+            elem = extractee.__getattribute__(v)
+        elem = str(noneify(elem))
+        row.append(elem)
+    return row
+
+class TextTrace:
     '''
     Laisse une trace dans un fichier texte.
     '''
@@ -35,123 +51,50 @@ class TextFileTrace:
     def __del__(self):
         self.trace_f.close()
 
-    def mise_a_jour_trace(self, configuration):
+    def update(self, simulator):
         '''
-        Écriture du fichier de trace.
+        Écrit l'état du ROB, des stations de reservation (des unités fonctionnelles) et de la
+         mémoire le fichier `self.trace_f` à chaque itération. 
         '''
-        # Incrémentation de l'horloge
-        self.horloge += 1
-
-        # Création de la table des stations de réservation
-        noneify = lambda x: x if x != None else ''
-        variables_a_afficher = configuration.unite_fonctionnelle.list()
-        res_table = PrettyTable(['station'] + \
-                                 list(configuration.unite_fonctionnelle[variables_a_afficher[0]][0].keys()))
-
-        for station_type in sorted(variables_a_afficher):
-            types = configuration.unite_fonctionnelle[station_type]
-            for index, station_number in enumerate(types):
-                # Trouver l'adresse de l'unité fonctionnelle
-                for a in types[index]:
-                    if a == str('op'):
-                        if types[index]['op'] != None:
-                            for b in types[index]['op'][1]:
-                                if memory_re.match(b) is not None:
-                                    R1Value = configuration.registre[str(b.split('(')[1][:-1])]
-                                    if str(R1Value)[0] != str('&'):
-                                        Offset = int(b.split('(')[0])
-                                        AddrValue = R1Value + Offset
-                                        station_number['addr'] = AddrValue
-                # Trouver l'opération
-                op_back = []
-                if station_number['op'] is not None:
-                    for inst in INSTRUCTION_SET.items():
-                        if inst[1] is station_number['op'][0]:
-                            op_back += inst
-
-                # Trouver qj
-                if station_number['qj'] not in [None, False]:
-                    qj_back = station_number['qj']
-                    if isinstance(qj_back, str) is True and qj_back[0] == '&':
-                        unite = ''.join([a for a in qj_back if not a.isdigit()])
-                        nouvelle = int(''.join([a for a in qj_back if a.isdigit()]))
-                        qj_back = unite + str(nouvelle)
-                    qj_back = qj_back\
-                          .replace('Reg[', '')\
-                          .replace(']', '')
-                else:
-                    qj_back = ''
-
-                # Trouver qk
-                if station_number['qk'] not in [None, False]:
-                    qk_back = station_number['qk']
-                    if isinstance(qk_back, str) is True and qk_back[0] == '&':
-                        unite = ''.join([a for a in qk_back if not a.isdigit()])
-                        nouvelle = int(''.join([a for a in qk_back if a.isdigit()]))
-                        qk_back = unite + str(nouvelle)
-                    qk_back = qk_back\
-                          .replace('Reg[', '')\
-                          .replace(']', '')
-                else:
-                    qk_back = ''
-
-                row = [station_type + str(index + 1)] + \
-                      [noneify(station_number[a]) for a in station_number.keys()]
-
-                station_number_keys = list(station_number.keys())
-                for index, element in enumerate(row):
-                    if station_number_keys[index - 1] == 'op':
-                        row[index] = op_back[0] if len(op_back) > 0 else ''
-                    if station_number_keys[index - 1] == 'qj':
-                        row[index] = qj_back
-                    if station_number_keys[index - 1] == 'qk':
-                        row[index] = qk_back
-                res_table.add_row(row)
+        #Tampon de réordonnancement
+        rob_variables = ['i', 'instr.code', 'instr.operands', 'state', 'dest', 'value']
+        rob_labels = ['Entrée', 'Instruction', '', 'État', 'Dest.', 'Valeur']
+        rob_table = PrettyTable(rob_labels)
+        for rob_entry in simulator.ROB:
+            row = get_vars_and_subvars(rob_variables, rob_entry)
+            rob_table.add_row(row)
+        
+        #Table des stations de réservation
+        rs_variables = ['name', 'instr.code', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
+        rs_labels = ['Station', 'Op', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
+        rs_table = PrettyTable(rs_labels)
+        for station_type, funits in simulator.RS.items():
+            for i, funit in enumerate(funits):
+                row = get_vars_and_subvars(rs_variables, funit)
+                rs_table.add_row(row)
 
         # Table des registres
-        registres = PrettyTable([' '] + [str(a) for a in range(10)])
+        reg_table = PrettyTable([' '] + [str(a) for a in range(16)])
         for row_ident in ['%s%d0' % (b, a) for b in ['R', 'F'] for a in range(4)]:
             padding = ['X'] * 8 if row_ident[1] == '3' else []
-            registres.add_row([row_ident] + \
-                              [configuration.registre[row_ident[:row_ident.index('0')] + str(a)]
+            first_row = ['ROB#'] + \
+              [noneify(simulator.regs.stat[row_ident[:row_ident.index('0')] + str(a)])
+              for a in range(10) if int(row_ident[1:]) + a < 32] + padding
+            reg_table.add_row(first_row)
+            reg_table.add_row([row_ident] + \
+                              [simulator.regs[row_ident[:row_ident.index('0')] + str(a)]
                               for a in range(10) if int(row_ident[1:]) + a < 32] + \
                               padding
                               )
 
-        # ROB sous format table
-        show_ROB = PrettyTable(['#', 'Ocp.', 'Unité fct.', 'Cible', 'Valeur'])
-        for index, elem in enumerate(configuration.ROB):
-            station_name = ''.join([a for a in elem[0] if not a.isdigit()] + [str(int(''.join([a for a in elem[0] if a.isdigit()])))])
-            num_unite_fct = int(''.join([str(int(''.join([a for a in elem[0] if a.isdigit()])))]))
-            unite_fct = configuration.unite_fonctionnelle[''.join([a for a in elem[0] if not a.isdigit()])][num_unite_fct - 1]
-            show_ROB.add_row([index,
-                              noneify(unite_fct['busy']),
-                              station_name,
-                              elem[1][1].split(' ')[0]
-                                .replace('Reg[', '')
-                                .replace('Mem[', '')
-                                .replace('int(', '')
-                                .replace(')/8', '')
-                                .replace('else self.new_pc', '')
-                                .replace(']', '')
-                                .replace('self.new_pc', 'PC')
-                                .strip(' ()[]') if elem[1] != None else '',
-                              elem[1][0]\
-                                .replace('Mem[', '')
-                                .replace('int(', '')
-                                .replace(')/8', '')
-                                .replace('else self.new_pc', '')
-                                .strip(' ()[]')
-                                if elem[1] != None else ''])
-
         # Affichage des tableaux précédemment créés
         self.trace_f.write('%s\n' % ('=' * 80))
-        self.trace_f.write('Cycle: %d\n' % self.horloge)
-        self.trace_f.write('Program Counter : %d\n' % configuration.PC)
-        self.trace_f.write('Stations de réservation:\n%s\n\n' % str(res_table))
-        self.trace_f.write('Registres: \n%s\n' % str(registres))
-        self.trace_f.write('ROB: \n%s\n' % (str(show_ROB)))
-        #self.trace_f.write(str(['%.2f' % a for a in self.config.memoire])+'\n')
+        self.trace_f.write('Cycle: %d\n' % simulator.horloge)
+        self.trace_f.write('Program Counter : %d\n' % simulator.PC)
+        self.trace_f.write('Stations de réservation:\n%s\n\n' % str(rs_table))
+        self.trace_f.write('Registres: \n%s\n' % str(reg_table))
+        self.trace_f.write('ROB: \n%s\n' % (rob_table))
+
 
         self.trace_f.flush()
 
