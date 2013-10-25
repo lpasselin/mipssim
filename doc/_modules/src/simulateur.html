@@ -1,0 +1,632 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>src.simulateur &mdash; Simulateur MIPS - TP 2 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Simulateur MIPS - TP 2 0.9 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for src.simulateur</h1><div class="highlight"><pre>
+<span class="c"># -*- coding: utf-8 -*-</span>
+
+<span class="c"># Copyright (c) 2011, Yannick Hold-Geoffroy on behalf of Université Laval</span>
+<span class="c"># All rights reserved.</span>
+<span class="c">#</span>
+<span class="c"># Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:</span>
+<span class="c">#</span>
+<span class="c">#    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.</span>
+<span class="c">#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer </span>
+<span class="c">#       in the documentation and/or other materials provided with the distribution.</span>
+<span class="c">#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived </span>
+<span class="c">#       from this software without specific prior written permission.</span>
+<span class="c">#</span>
+<span class="c"># THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,</span>
+<span class="c"># THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR </span>
+<span class="c"># CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, </span>
+<span class="c"># PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF </span>
+<span class="c"># LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, </span>
+<span class="c"># EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">src.trace</span> <span class="kn">import</span> <span class="n">gestion_deverminage</span>
+<span class="kn">from</span> <span class="nn">src.interpreteur</span> <span class="kn">import</span> <span class="n">INSTRUCTION_SET</span><span class="p">,</span> <span class="n">begin_memory_re</span><span class="p">,</span> <span class="n">memory_re</span><span class="p">,</span> <span class="n">memory_re_direct</span><span class="p">,</span> <span class="n">registry_re</span>
+
+
+<div class="viewcode-block" id="SimulationException"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.SimulationException">[docs]</a><span class="k">class</span> <span class="nc">SimulationException</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Wrapper d&#39;erreur de simulation</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parameter</span> <span class="o">=</span> <span class="n">value</span>
+
+    <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter</span><span class="p">)</span>
+
+</div>
+<div class="viewcode-block" id="mips_simulateur"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur">[docs]</a><span class="k">class</span> <span class="nc">mips_simulateur</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Simulateur d&#39;exécution du MIPS.</span>
+
+<span class="sd">    Prends le code retourné par l&#39;interpreteur et le fais exécuter sur la</span>
+<span class="sd">    configuration entrée.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">configuration</span><span class="p">,</span> <span class="n">interpreteur</span><span class="p">,</span> <span class="n">fichier_trace</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span> <span class="o">=</span> <span class="n">configuration</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span> <span class="o">=</span> <span class="n">interpreteur</span>
+        <span class="k">if</span> <span class="n">fichier_trace</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">deverminage</span> <span class="o">=</span> <span class="n">gestion_deverminage</span><span class="p">(</span><span class="n">fichier_trace</span><span class="p">)</span>
+
+<div class="viewcode-block" id="mips_simulateur.go"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.go">[docs]</a>    <span class="k">def</span> <span class="nf">go</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Effectue la simulation</span>
+<span class="sd">        </span>
+<span class="sd">        Valeurs de retour:</span>
+<span class="sd">        </span>
+<span class="sd">        * 0 = Simulation terminée avec succès</span>
+<span class="sd">        * 1 = Une erreur a été détectée lors de l&#39;exécution du programme. Pour</span>
+<span class="sd">              plus de détails, voir le flot d&#39;erreur du programme.</span>
+<span class="sd">        * 2 = Une erreur non-prévue s&#39;est produite.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span> <span class="o">=</span> <span class="n">debug</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># La boucle s&#39;est effectuée jusq&#39;au bout</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;Source EOF&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="mi">0</span>
+        <span class="k">except</span> <span class="n">SimulationException</span> <span class="k">as</span> <span class="n">err_desc</span><span class="p">:</span>
+            <span class="c"># Une erreur a été détectée</span>
+            <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s">&quot;Une erreur a été détectée lors de l&#39;exécution du </span><span class="se">\</span>
+<span class="s">                programme à la ligne : </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="n">err_desc</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="mi">2</span>
+</div>
+<div class="viewcode-block" id="mips_simulateur.step"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Effectue une itération de la simulation.</span>
+<span class="sd">        </span>
+<span class="sd">        * Retourne 0 si l&#39;opération s&#39;est déroulée avec succès et \</span>
+<span class="sd">l&#39;exécution n&#39;est pas terminée.</span>
+<span class="sd">        * Retourne 1 si l&#39;opération s&#39;est déroulée avec succès et \</span>
+<span class="sd">l&#39;exécution est terminée</span>
+<span class="sd">        </span>
+<span class="sd">        Une exception est levée si l&#39;exécution ne s&#39;est pas déroulée avec succès.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c"># Check si l&#39;unité fonctionnelle requise est libre</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&quot;Coup d&#39;horloge - PC = </span><span class="si">%s</span><span class="s"> - Stall = </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">),</span> 
+                  <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stall</span><span class="p">))</span>
+                 <span class="p">)</span>
+
+        <span class="c"># On sanctionne l&#39;instruction via le ROB ( Premier élément de celui-ci )</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sanctionnement_rob</span><span class="p">()</span>
+            
+        <span class="c"># Décrémentation du temps sur les unités fonctionnelles</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decrement_time</span><span class="p">()</span>
+
+        <span class="c"># Gestion des bulles et de la fin du programme</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stall</span> <span class="o">==</span> <span class="bp">True</span> \
+        <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;Debug: Coup d&#39;horloge stallé&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">issue_instr</span><span class="p">()</span>
+
+        <span class="c"># Avancement du Issue/Program Counter (PC)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">!=</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="bp">None</span>
+
+        <span class="c"># Si le Program Counter est &gt; la longueur du code, on a </span>
+        <span class="c"># (potentiellement) fini la job et on attend le ROB!</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="p">)</span> \
+        <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">==</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># Impression de la trace</span>
+            <span class="k">if</span> <span class="s">&#39;deverminage&#39;</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">deverminage</span><span class="o">.</span><span class="n">mise_a_jour_trace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span>
+</div>
+<div class="viewcode-block" id="mips_simulateur.sanctionnement_rob"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.sanctionnement_rob">[docs]</a>    <span class="k">def</span> <span class="nf">sanctionnement_rob</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Fonction sanctionnant les opérations dans l&#39;ordre d&#39;origine dont le </span>
+<span class="sd">        calcul est terminé.</span>
+<span class="sd">        Les opérations du ROB dont l&#39;unité fonctionnelle a terminé sont alors </span>
+<span class="sd">        effectuées.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+                <span class="k">print</span><span class="p">(</span><span class="s">&quot;Execution: </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">architecture_proxy</span> <span class="o">=</span> <span class="p">{</span><span class="s">&#39;self&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="p">}</span>
+            
+            <span class="k">exec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="n">architecture_proxy</span><span class="p">)</span>
+            
+            <span class="c"># Mettre à jour les Vj/Vk Qj/Qk des autres éléments avant une autre</span>
+            <span class="c"># opération qui changerait le même registre</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">))[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="n">e</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()]))</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="s">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">e</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()])</span>
+                <span class="n">unite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="n">d</span><span class="p">]</span>
+                
+                <span class="c"># Arrêter si l&#39;unité fonctionnelle actuellement analysée va réécrire ce registre</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                        <span class="k">break</span>
+                <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="c"># Vérifier que l&#39;unité est actuellement utilisé :</span>
+                <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+                    <span class="c"># Mettre à jour Qj/Qk pour Vj/Vk</span>
+                    <span class="c"># On essaie de trouver l&#39;élément (registre/mémoire) dans Qj/Qk. S&#39;il est trouvé, on l&#39;évalue</span>
+                    <span class="n">resultat</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qj&#39;</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">begin_memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">unite</span><span class="p">[</span><span class="s">&#39;qj&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">unite</span><span class="p">[</span><span class="s">&#39;qj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resultat</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resultat</span>
+                        <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qk&#39;</span><span class="p">]:</span>
+                        <span class="k">if</span> <span class="n">begin_memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">unite</span><span class="p">[</span><span class="s">&#39;qk&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">unite</span><span class="p">[</span><span class="s">&#39;qk&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">resultat</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">resultat</span>
+                        <span class="n">unite</span><span class="p">[</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                        
+            <span class="c"># Quand une instruction est sanctionnée, s&#39;assurer qu&#39;elle n&#39;écrit pas une valeur qui est encore dans le ROB comme fixe (ie. registre)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;self.config.registre&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>                
+                <span class="k">exec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;&#39;] &quot;</span><span class="p">,</span> <span class="s">&quot;T&#39;] &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">architecture_proxy</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
+                    <span class="c"># Si un autre élément existe dans le ROB qui va réécrire ce registre, remettre le registre à &amp;cossin</span>
+                    <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">6</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;Branch&#39;</span> <span class="ow">and</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">5</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;Store&#39;</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">():</span>
+                            <span class="k">exec</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> = &quot;</span><span class="si">%s</span><span class="s">&quot;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="n">architecture_proxy</span><span class="p">)</span>
+                            <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># Vérifier qu&#39;aucune opération pending wants to write to this register</span>
+                <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="o">.</span><span class="n">list</span><span class="p">()</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s">&quot;Store&quot;</span><span class="p">,</span> <span class="s">&quot;Branch&quot;</span><span class="p">]]:</span>
+                    <span class="c"># Prendre une référence sur l&#39;unité fonctionnelle qu&#39;on analyse</span>
+                    <span class="n">unite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> 
+                    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unite</span><span class="p">)):</span>
+                        <span class="c"># Vérifier que l&#39;unité est actuellement utilisé :</span>
+                        <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">c</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                                <span class="k">exec</span><span class="p">(</span><span class="s">&#39;</span><span class="si">%s</span><span class="s"> = &quot;</span><span class="si">%s</span><span class="s">&quot;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="s">&quot;&amp;&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">c</span><span class="p">)),</span> <span class="n">architecture_proxy</span><span class="p">)</span>
+                                <span class="bp">self</span> <span class="o">=</span> <span class="n">ldict</span><span class="p">[</span><span class="s">&#39;self&#39;</span><span class="p">]</span>
+                                    
+            <span class="c"># Gestion des branchs lors du sanctionnement</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>     
+                <span class="bp">self</span><span class="o">.</span><span class="n">stall</span> <span class="o">=</span> <span class="bp">False</span>
+                
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">!=</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">False</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">==</span> <span class="bp">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="bp">True</span><span class="p">):</span>
+                    <span class="c"># Mauvaise spéculation</span>
+                    <span class="c"># Remettre le pointeur à la bonne place</span>
+                    
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">3</span><span class="p">]</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="c"># Clean du ROB</span>
+                    <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[:]</span>
+                    <span class="c"># Clean des stations de réservation</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">clean_unite_fonctionnelles</span><span class="p">()</span>
+                    <span class="c"># Clean des registres</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;F0&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;F0T&#39;</span><span class="p">]</span>
+                    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">31</span><span class="p">):</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;R</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;R</span><span class="si">%d</span><span class="s">T&#39;</span> <span class="o">%</span> <span class="n">a</span><span class="p">]</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;F</span><span class="si">%d</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">a</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="s">&#39;F</span><span class="si">%d</span><span class="s">T&#39;</span> <span class="o">%</span> <span class="n">a</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c"># Spéculation réussite, aucun changement requis.</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="bp">None</span>
+            
+            <span class="c"># Une fois l&#39;instruction sanctionnée, la retirer du ROB</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            
+            <span class="c"># Si nous ne sommes pas en présence d&#39;un aléa, incrémenter le </span>
+            <span class="c"># compteur PC.</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">stall</span> <span class="o">==</span> <span class="bp">False</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">==</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span>
+            </div>
+<div class="viewcode-block" id="mips_simulateur.exec_tomasulo"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.exec_tomasulo">[docs]</a>    <span class="k">def</span> <span class="nf">exec_tomasulo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_unite</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Prépare les variables pour l&#39;exécution.</span>
+<span class="sd">        Traduit les vj/vk/etc en paramètres directs pour faire fonctionner la commande exec_instr().</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        
+        <span class="n">in_instr</span> <span class="o">=</span> <span class="n">in_unite</span><span class="p">[</span><span class="s">&#39;op&#39;</span><span class="p">]</span>
+        <span class="c"># Résoudre les adresses d&#39;accès mémoire</span>
+        <span class="n">vj</span> <span class="o">=</span> <span class="n">in_unite</span><span class="p">[</span><span class="s">&#39;vj&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">vk</span> <span class="o">=</span> <span class="n">in_unite</span><span class="p">[</span><span class="s">&#39;vk&#39;</span><span class="p">]</span>
+        <span class="n">addr</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">in_unite</span><span class="p">[</span><span class="s">&#39;vj&#39;</span><span class="p">],</span> <span class="n">in_unite</span><span class="p">[</span><span class="s">&#39;vk&#39;</span><span class="p">]]</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">]</span>
+        <span class="c"># Cas spécial pour store où les unités sont inversés, Quix hax</span>
+        <span class="k">if</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Load&#39;</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="k">elif</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Store&#39;</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>
+            <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+                <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">exec_instr</span><span class="p">((</span><span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">params</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="mips_simulateur.resolve_variables"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.resolve_variables">[docs]</a>    <span class="k">def</span> <span class="nf">resolve_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_param</span><span class="p">,</span> <span class="n">memory_resolve</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Permet de transformer les variables du code MIPS en variables Python selon l&#39;architecture de la configuration. </span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">in_param</span>
+        <span class="c"># Remplacer les paramètres par les références</span>
+        <span class="c"># Mémoire éloignée</span>
+        <span class="k">if</span> <span class="n">memory_resolve</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="s">&#39;self.config.memoire[int(</span><span class="si">%s</span><span class="s">)]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;(int(&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;) + &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;)/8&#39;</span><span class="p">)</span>
+            
+            <span class="c"># Mémoire directe</span>
+            <span class="k">if</span> <span class="n">memory_re_direct</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">output</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">=</span> <span class="s">&#39;self.config.memoire[int(</span><span class="si">%s</span><span class="s">)]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s">&#39;(&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39; + &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s">&#39;)/8&#39;</span><span class="p">)</span>
+
+        <span class="c"># Nombre direct</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">if</span> <span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;#&quot;</span> <span class="k">else</span> <span class="n">output</span>
+        
+        <span class="c"># Registres</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">registry_re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s">r&quot;self.config.registre[&#39;\1&#39;]&quot;</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="n">output</span>
+</div>
+<div class="viewcode-block" id="mips_simulateur.exec_instr"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.exec_instr">[docs]</a>    <span class="k">def</span> <span class="nf">exec_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_instr</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Exécution de l&#39;instruction sous forme ([&quot;Unite_fctionnelle&quot;, &quot;destination = source_$0 + source_$1&quot;], [param1, param2, ...])</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s">&#39;self.new_pc&#39;</span><span class="p">,</span> <span class="s">&#39;self.config.PC&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="n">in_instr</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="s">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">,</span> <span class="s">&#39;ERROR&#39;</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+            <span class="n">params</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_variables</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+        
+        <span class="c"># Remplacer les placeholders</span>
+        <span class="n">code</span> <span class="o">=</span> <span class="n">code</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;$0&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;$1&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;$2&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;$3&quot;</span><span class="p">,</span> <span class="n">params</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="c"># Détection des erreurs (sens assez littéraire :)</span>
+        <span class="k">if</span> <span class="n">code</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&quot;ERROR&quot;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">SimulationException</span><span class="p">([</span><span class="n">in_instr</span><span class="p">,</span> <span class="s">&quot;Paramètre manquant&quot;</span><span class="p">])</span>
+        
+        <span class="c"># Debug:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">verbose</span><span class="p">:</span>
+            <span class="n">params</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">params</span> <span class="k">if</span> <span class="n">a</span> <span class="o">!=</span> <span class="s">&#39;ERROR&#39;</span><span class="p">]</span>
+            <span class="n">valeurs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+                <span class="n">valeurs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s">&quot;</span><span class="si">%s</span><span class="s">=</span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">code</span><span class="p">))</span>
+            <span class="k">print</span><span class="p">(</span><span class="s">&#39;Debug: </span><span class="si">%s</span><span class="s"> | </span><span class="si">%s</span><span class="s">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&quot;self.config.&quot;</span><span class="p">,</span> <span class="s">&quot;&quot;</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">valeurs</span><span class="p">)))</span>
+
+        <span class="c"># Wrapping de l&#39;opération en code Python</span>
+        <span class="n">retour</span> <span class="o">=</span> <span class="s">&quot;=&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">code</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:])</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">retour</span><span class="p">,</span> <span class="n">code</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&quot;=&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s">&quot; = &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">retour</span><span class="p">))</span>
+</div>
+    <span class="k">def</span> <span class="nf">clean_unite_fonctionnelles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="o">.</span><span class="n">list</span><span class="p">():</span>
+            <span class="c"># Prendre une référence sur l&#39;unité fonctionnelle qu&#39;on analyse</span>
+            <span class="n">unite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unite</span><span class="p">)):</span>
+                <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+<div class="viewcode-block" id="mips_simulateur.decrement_time"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.decrement_time">[docs]</a>    <span class="k">def</span> <span class="nf">decrement_time</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Effectue un coup d&#39;horloge, soit décrémente de un le temps restant de chaque unité fonctionnelle qui travaille en ce moment.</span>
+<span class="sd">        </span>
+<span class="sd">        Part les unités fonctionelles qui attendaient après des données qui sont maintenant disponibles</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c"># Reset des writeback buffer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">unite_sanctionnement_now</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="o">.</span><span class="n">list</span><span class="p">():</span>
+            <span class="c"># Prendre une référence sur l&#39;unité fonctionnelle qu&#39;on analyse</span>
+            <span class="n">unite</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="n">a</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unite</span><span class="p">)):</span>
+                <span class="c"># Vérifier que l&#39;unité est actuellement utilisée :</span>
+                <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+                    <span class="c"># Si l&#39;unité fonctionnelle n&#39;est pas démarrée (temps = None), vérifier si on peut la partir</span>
+                    <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="c"># On part l&#39;exécution</span>
+                            <span class="c"># Exception pour l&#39;unité fonctionnelle Mult</span>
+                            <span class="k">if</span> <span class="n">a</span> <span class="o">==</span> <span class="s">&#39;Mult&#39;</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;*&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                    <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unite</span><span class="o">.</span><span class="n">temps_execution</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unite</span><span class="o">.</span><span class="n">temps_execution_division</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">unite</span><span class="o">.</span><span class="n">temps_execution</span>
+                    <span class="c"># Si elle est déjà partie...</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c"># Si on passe de 0 à -1, l&#39;unité redevient available et le résultat est écrit (Write de Tomasulo)</span>
+                        <span class="k">if</span> <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+                            <span class="n">nom_unite</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">unite_sanctionnement_now</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">nom_unite</span><span class="p">)</span>
+                            
+                            <span class="c"># Prêt au sanctionnement</span>
+                            <span class="n">retour</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exec_tomasulo</span><span class="p">(</span><span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+
+                            <span class="c"># Reset de l&#39;unité fonctionnelle</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">]</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+                            <span class="c"># Modifier l&#39;information dans le ROB. Trouver et mettre à jour l&#39;élément [1] du ROB avec retour</span>
+                            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">([(</span><span class="n">index</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">)]):</span>
+                                <span class="k">if</span> <span class="n">c</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">a</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">b</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">retour</span>
+                                    <span class="k">break</span>
+                            
+                            <span class="n">retour</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">retour</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                            <span class="c"># Writeback Tomasulo, écriture de l&#39;instruction sur le CDB et mise à jour des stations de réservation</span>
+                            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="o">.</span><span class="n">list</span><span class="p">():</span>
+                                <span class="n">uf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+                                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">uf</span><span class="p">)):</span>
+                                    <span class="c"># Mise à jour requise uniquement lorsque l&#39;unité est occupée et attend après ses paramètres.</span>
+                                    <span class="k">if</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="ow">and</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+                                        <span class="k">if</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">nom_unite</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                            <span class="k">if</span> <span class="n">begin_memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                                                <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">retour</span><span class="p">)</span>
+                                            <span class="k">else</span><span class="p">:</span>
+                                                <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">retour</span>
+                                            <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                                        <span class="k">if</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="n">nom_unite</span><span class="p">)</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                                            <span class="k">if</span> <span class="n">begin_memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">])</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                                                <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">retour</span><span class="p">)</span>
+                                            <span class="k">else</span><span class="p">:</span>
+                                                <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">retour</span>
+                                            <span class="n">uf</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                        <span class="c"># Sinon, simplement la décrémenter de 1</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">unite</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">-=</span> <span class="mi">1</span>
+</div>
+<div class="viewcode-block" id="mips_simulateur.issue_instr"><a class="viewcode-back" href="../../simulateur.html#src.simulateur.mips_simulateur.issue_instr">[docs]</a>    <span class="k">def</span> <span class="nf">issue_instr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Ajouter une instruction dans le ROB pendant son calcul par une unité fonctionelle.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ref_unite_fct</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]]</span>
+        <span class="n">unite_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_unite_fct</span><span class="p">(</span><span class="n">ref_unite_fct</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c"># Tester si un branch n&#39;est pas déjà dans le ROB, le cas échéant ne pas partir de spéculation multiple</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">6</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">stall</span> <span class="o">=</span> <span class="bp">True</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span>
+                    <span class="k">return</span>
+        <span class="c"># Attribuer l&#39;opération à une station de réservation si possible</span>
+        <span class="k">if</span> <span class="n">unite_index</span> <span class="o">!=</span> <span class="bp">None</span><span class="p">:</span>
+            <span class="c"># Ajouter l&#39;info au ROB</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">unite_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="bp">None</span><span class="p">])</span>
+            <span class="c"># Attribuer les variables de Tomasulo</span>
+            <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;addr&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;dest&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">]</span>
+            
+            <span class="c"># Vérifier les paramètres des opérations voir s&#39;ils vont dans le vj/vk ou qj/qk</span>
+            <span class="k">if</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;Store&quot;</span><span class="p">:</span>
+                <span class="n">to_check</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&quot;Branch&quot;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$2 = $1 if $0 == 0 else $2&#39;</span> \
+                <span class="ow">or</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$2 = $1 if $0 != 0 else $2&#39;</span><span class="p">:</span>
+                    <span class="n">to_check</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">elif</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$3 = $2 if $0 == $1 else $3&#39;</span> \
+                <span class="ow">or</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;$3 = $2 if $0 != $1 else $3&#39;</span><span class="p">:</span>
+                    <span class="n">to_check</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">to_check</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">to_check</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+
+            <span class="c"># Trouver Vj/Vk ou Qj/Qk</span>
+            <span class="n">premier</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">for</span> <span class="n">param_index</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">to_check</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">a</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">param</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">a</span><span class="p">]</span>                
+                
+                <span class="c"># On résoud la référence</span>
+                <span class="n">temp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">resolve_variables</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="bp">False</span><span class="p">)</span>
+                
+                <span class="c"># Est-ce que on a déjà la valeur? Si oui, on la met dans Vj/Vk, sinon, Qj/Qk</span>
+                <span class="n">valeur</span> <span class="o">=</span> <span class="s">&quot;&amp;&quot;</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c"># Ne pas résoudre les accès mémoire en ce moment</span>
+                    <span class="k">if</span> <span class="n">memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                        <span class="n">uf</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s">&quot; )&quot;</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">uf</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+                    
+                    <span class="n">numeric</span> <span class="o">=</span> <span class="bp">False</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">uf</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">uf</span><span class="p">:</span>
+                        <span class="n">rob</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">))[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">uf</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="ow">in</span> <span class="n">rob</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="n">rob</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="mi">1</span><span class="p">:])][</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">numeric</span> <span class="o">=</span> <span class="bp">True</span>
+                            <span class="n">numeric_val</span> <span class="o">=</span> <span class="nb">eval</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="n">rob</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">uf</span><span class="p">[</span><span class="mi">1</span><span class="p">:])][</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>                    
+                            <span class="k">if</span> <span class="n">memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                                <span class="n">valeur</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">numeric_val</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">valeur</span> <span class="o">=</span> <span class="n">numeric_val</span>
+                                
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">numeric</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">memory_re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+                            <span class="n">valeur</span> <span class="o">=</span> <span class="s">&quot;</span><span class="si">%s</span><span class="s">(</span><span class="si">%s</span><span class="s">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">temp</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;(&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">uf</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">valeur</span> <span class="o">=</span> <span class="n">uf</span>
+                <span class="k">except</span> <span class="ne">BaseException</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="c"># RAISE ERROR</span>
+                    <span class="k">print</span><span class="p">(</span><span class="s">&quot;Erreur lors de l&#39;execution: </span><span class="si">%s</span><span class="s"> - </span><span class="si">%s</span><span class="s">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">temp</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+                
+                <span class="k">if</span> <span class="n">premier</span> <span class="o">==</span> <span class="bp">True</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">valeur</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">valeur</span><span class="p">:</span>
+                        <span class="c">#Utiliser la valeur de format &#39;&amp;UNITE_FCT&#39; plutôt </span>
+                        <span class="c">#que le numéro de registre directement</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">valeur</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;vj&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">valeur</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">valeur</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="s">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">valeur</span><span class="p">:</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">valeur</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;vk&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">valeur</span>
+                <span class="n">premier</span> <span class="o">=</span> <span class="bp">False</span>
+            
+            <span class="k">if</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qj&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;qk&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">None</span><span class="p">:</span>
+                <span class="c"># On part l&#39;exécution</span>
+                <span class="c"># Exception pour l&#39;unité fonctionnelle Mult                </span>
+                <span class="k">if</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;Mult&#39;</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;op&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">find</span><span class="p">(</span><span class="s">&#39;*&#39;</span><span class="p">)</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref_unite_fct</span><span class="o">.</span><span class="n">temps_execution</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref_unite_fct</span><span class="o">.</span><span class="n">temps_execution_division</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ref_unite_fct</span><span class="p">[</span><span class="n">unite_index</span><span class="p">][</span><span class="s">&#39;temps&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ref_unite_fct</span><span class="o">.</span><span class="n">temps_execution</span>
+
+            <span class="c"># Trouver le paramètre de destination, qui est l&#39;inverse des paramètres d&#39;entrée (sauf pour le Branch)</span>
+            <span class="n">destination</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span> <span class="k">if</span> <span class="n">a</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">to_check</span><span class="p">]</span>
+            <span class="c"># Si l&#39;opération est une branch, aucune destination à analyser - C&#39;est un label.</span>
+            <span class="c"># Si aucune destination trouvée, ie un Store ou  Branch, mettre à None</span>
+            <span class="n">destination</span> <span class="o">=</span> <span class="n">destination</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">destination</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;Branch&#39;</span> <span class="k">else</span> <span class="bp">None</span>
+
+            <span class="c"># Mettre une référence dans la destination, soit &amp;Unite_name</span>
+            <span class="k">if</span> <span class="n">destination</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">destination</span> <span class="ow">is</span> <span class="ow">not</span> <span class="p">[]:</span>
+                <span class="c">#Utiliser une notation débutant à 1.</span>
+                <span class="n">destination_value</span> <span class="o">=</span> <span class="s">&#39;&amp;&#39;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">unite_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">registre</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="n">destination</span><span class="p">]]</span> <span class="o">=</span> <span class="n">destination_value</span>
+
+            <span class="c"># Passer à l&#39;opération suivante s&#39;il n&#39;y a pas de branch qui s&#39;est déjà effectué</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="s">&#39;Branch&#39;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">==</span> <span class="bp">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c"># Gestion des branchs / Spéculation</span>
+                <span class="c"># Déterminer si le branchement des forward ou backward</span>
+                <span class="n">forward_branch</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span> <span class="o">&gt;</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">))</span>
+                <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Branch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">spec_forward</span> <span class="ow">and</span> <span class="n">forward_branch</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">unite_fonctionnelle</span><span class="p">[</span><span class="s">&#39;Branch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">spec_backward</span> <span class="ow">and</span> <span class="p">(</span><span class="n">forward_branch</span> <span class="o">==</span> <span class="bp">False</span><span class="p">)):</span>
+                    <span class="c"># Spéculation forward or backward ENGAGED</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">True</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">False</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interpreter</span><span class="o">.</span><span class="n">flow</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c"># Aucune unité fonctionnelle libre trouvée, on est COINCÉS COMME DES RATS et on attend.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">new_pc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">PC</span>
+</div>
+    <span class="k">def</span> <span class="nf">find_unite_fct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unite</span><span class="p">,</span> <span class="n">nom_unite</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">unite</span><span class="p">):</span>
+            <span class="n">str_unite</span> <span class="o">=</span> <span class="n">nom_unite</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">a</span><span class="p">[</span><span class="s">&#39;busy&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="bp">False</span> <span class="ow">and</span> <span class="n">str_unite</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">unite_sanctionnement_now</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">str_unite</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">ROB</span><span class="p">)))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">index</span> 
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+
+    <span class="n">config</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">interpreter</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">trace_ptr</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">horloge</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">stall</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="n">ROB</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">new_pc</span> <span class="o">=</span> <span class="bp">None</span>
+    <span class="n">unite_sanctionnement_now</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">verbose</span> <span class="o">=</span> <span class="bp">False</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Yannick Hold-Geoffroy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>

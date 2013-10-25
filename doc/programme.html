@@ -1,0 +1,179 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Utilisation du programme de simulation d’architecture MIPS 64 bits &mdash; Simulateur MIPS - TP 2 0.9 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.9',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Simulateur MIPS - TP 2 0.9 documentation" href="index.html" />
+    <link rel="next" title="Architecture du MIPS 64 bits et du simulateur" href="architecture.html" />
+    <link rel="prev" title="Documentation du Simulateur MIPS - TP 2" href="index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="architecture.html" title="Architecture du MIPS 64 bits et du simulateur"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Documentation du Simulateur MIPS - TP 2"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="utilisation-du-programme-de-simulation-d-architecture-mips-64-bits">
+<h1>Utilisation du programme de simulation d&#8217;architecture MIPS 64 bits<a class="headerlink" href="#utilisation-du-programme-de-simulation-d-architecture-mips-64-bits" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="demarrage-du-programme">
+<h2>Démarrage du programme<a class="headerlink" href="#demarrage-du-programme" title="Permalink to this headline">¶</a></h2>
+<p>Ce simulateur d&#8217;architecture MIPS 64 bits est développé pour fonctionner
+sous Python 3.
+Vous pouvez le démarrer de la façon suivante dans un terminal:</p>
+<div class="highlight-python"><pre>python3 ./mipssim.py [-d] [-h] &lt;configuration&gt; &lt;assembleur&gt; &lt;trace&gt;</pre>
+</div>
+<p>Par exemple, pour faire exécuter le code loop2.mips avec la configuration adéquate, tapez la commande suivante:</p>
+<div class="highlight-python"><pre>python3 ./mipssim.py xml/loop.xml mips/loop2.mips trace.txt</pre>
+</div>
+<div class="section" id="parametres-supportes">
+<h3>Paramètres supportés<a class="headerlink" href="#parametres-supportes" title="Permalink to this headline">¶</a></h3>
+<p>Les drapeaux &#8216;&#8217;-d&#8217;&#8217; et &#8216;&#8217;-h&#8217;&#8217; sont supportés par le simulateur.</p>
+<p>Le drapeau &#8216;&#8217;-d&#8217;&#8217; permet d&#8217;entrer en mode <em>debug</em> afin que le simulateur
+produire un flot de sortie comprenant toutes les opérations qu&#8217;il effectue
+à chaque coup d&#8217;horloge.</p>
+<p>Le drapeau &#8216;&#8217;-h&#8217;&#8217; affiche l&#8217;aide du simulateur, soit un exemple d&#8217;utilisation.</p>
+<p>Deux paramètres sont obligatoires, soit un chemin vers un fichier de
+configuration et un chemin . Voir la documentation sur la configuration pour plus
+d&#8217;informations.</p>
+</div>
+</div>
+<div class="section" id="module-mipssim">
+<span id="classes-et-membres-du-module-principal"></span><h2>Classes et membres du module principal<a class="headerlink" href="#module-mipssim" title="Permalink to this headline">¶</a></h2>
+<p>Simulateur d&#8217;architecture MIPS 64 bits</p>
+<p>Auteurs : Yannick Hold-Geoffroy, Mathieu Juneau et Vincent Martel
+Maintenance : Julien-Charles Lévesque</p>
+<dl class="exception">
+<dt id="mipssim.Usage">
+<em class="property">exception </em><tt class="descclassname">mipssim.</tt><tt class="descname">Usage</tt><big>(</big><em>msg</em><big>)</big><a class="reference internal" href="_modules/mipssim.html#Usage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mipssim.Usage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Déclaration des exceptions relatives aux entrées de l&#8217;utilisateur.</p>
+<dl class="attribute">
+<dt id="mipssim.Usage.args">
+<tt class="descname">args</tt><a class="headerlink" href="#mipssim.Usage.args" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="mipssim.Usage.message">
+<tt class="descname">message</tt><a class="headerlink" href="#mipssim.Usage.message" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="mipssim.main">
+<tt class="descclassname">mipssim.</tt><tt class="descname">main</tt><big>(</big><em>argv=None</em><big>)</big><a class="reference internal" href="_modules/mipssim.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#mipssim.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Utilisation du programme de simulation d&#8217;architecture MIPS 64 bits</a><ul>
+<li><a class="reference internal" href="#demarrage-du-programme">Démarrage du programme</a><ul>
+<li><a class="reference internal" href="#parametres-supportes">Paramètres supportés</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-mipssim">Classes et membres du module principal</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Documentation du Simulateur MIPS - TP 2</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="architecture.html"
+                        title="next chapter">Architecture du MIPS 64 bits et du simulateur</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/programme.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="architecture.html" title="Architecture du MIPS 64 bits et du simulateur"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Documentation du Simulateur MIPS - TP 2"
+             >previous</a> |</li>
+        <li><a href="index.html">Simulateur MIPS - TP 2 0.9 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2011, Yannick Hold-Geoffroy.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
