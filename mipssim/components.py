@@ -4,6 +4,10 @@
 
 from collections import OrderedDict, namedtuple
 
+#16 registres c'est suffisant pour les exemples nous intéressant.
+#Normalement, c'est 32, mais ça ne fait que réduire la lisibilité des
+#traces.
+NUM_REGISTERS = 16
 
 '''Instruction: tuple nommé contenant les champs importants représentant une instruction.
 Paramètres:
@@ -14,7 +18,6 @@ action: type d'action réalisé par l'instruction sous forme mathématique
 operands: opérandes de l'instruction (nombre varie selon l'instruction)
 '''
 Instruction = namedtuple('Instruction', ['addr', 'code', 'funit', 'action', 'operands', 'operator'])
-
 
 #Enumération pour les états des instructions dans le ROB
 class State:
@@ -159,7 +162,7 @@ def check_valid_register(func):
     '''
     def function_handling(*args, **kwargs):
         temp = args[1]
-        if temp[0] not in ['R', 'F'] or int(temp[1:]) not in range(0, 32):
+        if temp[0] not in ['R', 'F'] or int(temp[1:]) not in range(0, NUM_REGISTERS):
             raise SimulationException('Accès à un registre non valide: %s.' % args[1])
         else:
             return func(*args, **kwargs)
@@ -180,7 +183,7 @@ class Registers(OrderedDict):
         #d'écrire dans les registres aux commits.
         
         #Remplissage des registres
-        names = ['R%i' % (i) for i in range(32)] + ['F%i' % (i) for i in range(32)]
+        names = ['R%i' % (i) for i in range(NUM_REGISTERS)] + ['F%i' % (i) for i in range(16)]
         for n in names:
             #Bypass les vérifications pour pouvoir assigner 0 au registre R0
             self.__setitem__(n, 0, bypass=True)
