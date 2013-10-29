@@ -47,7 +47,7 @@ def main(config_file, source_file, trace_file, debug):
         print('Simulation terminée avec succès.')
     else:
         print('Une erreur est survenue lors de l\'exécution du programme.')
-    return err
+    return err, simulator
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Simulateur de MIPS en Python (2.7+). Testé avec Python 2.7 et 3.3.')
@@ -60,4 +60,4 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    sys.exit(main(args.config_file, args.source_file, args.trace_file, args.debug))
+    err, simulator = main(args.config_file, args.source_file, args.trace_file, args.debug)
