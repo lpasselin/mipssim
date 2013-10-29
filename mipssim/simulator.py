@@ -33,7 +33,7 @@ class Simulator:
         self.stall = False
         self.new_PC = None
         self.ROB = components.ROB(maxlen=24)
-        self.PC = 0
+        self.PC = -1 #Puisqu'on incrémente avant le premier lancement
         self.RS = OrderedDict()
 
         self.debug = debug
@@ -84,10 +84,6 @@ class Simulator:
 
         Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         '''
-        if self.debug:
-            print('Coup d\'horloge - PC = %s - Stall = %s' % (
-                str(self.PC), str(self.stall)))
-
         #Les opérations sont inversées pour éviter d'accomplir plusieurs actions sur une même
         # instruction dans un seul coup d'horloge.
         
@@ -96,20 +92,24 @@ class Simulator:
 
         #Décrémentation du temps sur les unités fonctionnelles
         self.decrement_time()
-
+        
         # Gestion des bulles et de la fin du programme
-        if self.stall == True or self.PC + 1 > len(self.instructions):
+        if self.stall == True or (self.new_PC == None and self.PC + 1 == len(self.instructions)) \
+          or self.new_PC == len(self.instructions):
             print('Aucune instruction lancée (clock: %i).' % self.clock)
-        else:
+        else:            
+            #Avancement du Issue/Program Counter (PC)
+            if self.new_PC != None: #Si branchement
+                self.PC = self.new_PC
+            else:
+                self.PC = self.PC + 1
+            self.new_PC = None
+            
+            #Lance l'instruction à self.PC
             self.issue_instr()
 
-        #Avancement du Issue/Program Counter (PC)
-        if self.new_PC != None:
-            self.PC = self.new_PC
-        self.new_PC = None
-
         #Si l'exécution est terminée et le ROB est vide
-        if self.PC >= len(self.instructions) and len(self.ROB) == 0:
+        if self.PC + 1 >= len(self.instructions) and len(self.ROB) == 0:
             return 1
         else:
             if self.trace:
@@ -144,13 +144,11 @@ class Simulator:
                     # Mauvaise spéculation
                     #Si il y avait un blocage, il disparaît car on flush le ROB et les RS
                     if rob_head.value:
-                        #On force la prise de ce branchement, on modifie directement le PC
-                        self.PC = int(rob_head.instr.operands[-1][1:])
+                        #On force la prise de ce branchement
+                        self.new_PC = int(rob_head.instr.operands[-1][1:])
                     else:
                         #On retourne à l'instruction suivant le branchement
-                        self.PC = rob_head.instr.addr + 1
-                    
-                    self.new_PC = None
+                        self.new_PC = rob_head.instr.addr + 1
                     
                     #Flush le ROB
                     self.ROB.reset()
@@ -162,15 +160,13 @@ class Simulator:
                     self.reset_funits()
                 else:
                     # Spéculation réussite, aucun changement requis.
-                    self.new_PC = None
+                    pass
             elif rob_head.instr.funit == 'Store':
                 #On écrit le résultat en mémoire.
                 self.mem[rob_head.addr] = rob_head.value
 
             # Une fois l'instruction sanctionnée, la retirer du ROB
             self.ROB.free_head_entry()
-
-            self.new_PC = (self.PC + 1) if self.new_PC == None else self.new_PC
 
     def exec_instr(self, func_unit, rob_entry):
         '''
@@ -457,11 +453,8 @@ class Simulator:
                 print('Debug: cur_rob_entry: ', cur_rob_entry)
                 print('Debug: cur_funit: ', cur_funit)
 
-            # Passer à l'opération suivante s'il n'y a pas de branch qui s'est déjà effectué
-            if self.instructions[self.PC].funit != 'Branch':
-                self.new_PC = (self.PC + 1) if self.new_PC == None else self.new_PC
-            else:
-                # Gestion des branchs / Spéculation
+            # Gestion des branchs / Spéculation
+            if self.instructions[self.PC].funit == 'Branch':
                 # adresse du branchement
                 cur_funit.A = int(self.instructions[self.PC].operands[-1][1:])
                 
@@ -470,12 +463,10 @@ class Simulator:
                 #Hennessy ne spécifie pas où placer la prédiction
                 cur_rob_entry.prediction = cur_funit.get_prediction(self.PC, cur_funit.A)
                 
+                #Prédiction d'un branchement pris.
                 if cur_rob_entry.prediction == True:
-                    #Prédiction d'un branchement pris.
                     self.new_PC = cur_funit.A
-                else:
-                    #Prédiction d'un branchement non pris.
-                    self.new_PC = int(self.PC + 1)
+                #Sinon aucune action à prendre.
         else:
             # Aucune unité fonctionnelle libre trouvée ou bien plus de place dans le ROB
             # On est coincés comme des rats, on attend.
