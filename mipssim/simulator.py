@@ -29,7 +29,7 @@ class Simulator:
     '''
     def __init__(self, config_file, source_file, trace_file='', trace_mode='t', debug=False):
         #Initialisation des variables membres
-        self.horloge = 0
+        self.clock = 0
         self.stall = False
         self.new_PC = None
         self.ROB = components.ROB(maxlen=24)
@@ -67,10 +67,10 @@ class Simulator:
         '''
 
         while self.step() == 0:
-            self.horloge += 1
+            self.clock += 1
 
         #L'exécution s'est complétée sans problème.
-        print('Fin des instructions.')
+        print("Simulation terminée au coup d'horloge %i." % self.clock)
         return 0
 
     def step(self):
@@ -99,7 +99,7 @@ class Simulator:
 
         # Gestion des bulles et de la fin du programme
         if self.stall == True or self.PC + 1 > len(self.instructions):
-            print('Aucune instruction lancée.')
+            print('Aucune instruction lancée (clock: %i).' % self.clock)
         else:
             self.issue_instr()
 
@@ -139,10 +139,10 @@ class Simulator:
 
             # Gestion des branchs lors du sanctionnement
             if rob_head.instr.funit == 'Branch':
+                self.stall = False
                 if (rob_head.prediction != rob_head.value):
                     # Mauvaise spéculation
                     #Si il y avait un blocage, il disparaît car on flush le ROB et les RS
-                    self.stall = False
                     if rob_head.value:
                         #On force la prise de ce branchement, on modifie directement le PC
                         self.PC = int(rob_head.instr.operands[-1][1:])
@@ -211,25 +211,9 @@ class Simulator:
             #Le load ne peut pas s'exécuter tant qu'il y a un store le précédent dans le ROB,
             #donc rendu ici aucun problème.
             rob_entry.value = self.mem[func_unit.A]
-        else:
-            if instr.operator == '+':
-                value = func_unit.vj + func_unit.vk
-            elif instr.operator == '-':
-                value = func_unit.vj - func_unit.vk
-            elif instr.operator == '/':
-                value = func_unit.vj / func_unit.vk
-            elif instr.operator == '*':
-                value = func_unit.vj * func_unit.vk
-            elif instr.operator == '&':
-                value = func_unit.vj & func_unit.vk
-            else:
-                raise Exception('Invalid operator.')
-                
+        else:    
             result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
-            if result != value:
-                raise Exception('Mode avec exec ne fonctionne pas.')
-                
-            rob_entry.value = value
+            rob_entry.value = result
 
         rob_entry.state = State.EXECUTE
 
@@ -237,7 +221,6 @@ class Simulator:
         '''
         Permet de transformer les variables du code MIPS en variables Python.
         '''
-        
         if operand[0] == '#':
             value = int(operand[1:])
             rob_i = None
@@ -250,18 +233,15 @@ class Simulator:
                 value = None
         else:
             raise Exception('Opérande invalide.')
-        
         return value, rob_i
         
     def resolve_memory_operand(self, operand):
-        mem_reg_value = 0
-        
         reg_name = operand.split('(')[1].split(')')[0]
         mem_adr_value, rob_i = self.resolve_operand(reg_name)
         
         #décalage immédiat de l'adresse: IMM(RX)
         mem_imm = int(operand.split('(')[0])
-        
+
         return mem_imm, mem_adr_value, rob_i
 
     def reset_funits(self):
@@ -384,11 +364,9 @@ class Simulator:
             if cur_instruction.funit == 'Store':
                 to_check = [0, 1]
             elif cur_instruction.funit == 'Branch':
-                if cur_instruction.action == '$2 = $1 if $0 == 0 else $2' \
-                or cur_instruction.action == '$2 = $1 if $0 != 0 else $2':
+                if cur_instruction.code in ['BEQZ', 'BNEZ']:
                     to_check = [0]
-                elif cur_instruction.action == '$3 = $2 if $0 == $1 else $3' \
-                or cur_instruction.action == '$3 = $2 if $0 != $1 else $3':
+                elif cur_instruction.code in ['BEQ', 'BNE']:
                     to_check = [0, 1]
                 else:
                     to_check = []
