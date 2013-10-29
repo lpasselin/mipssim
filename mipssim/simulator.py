@@ -1,20 +1,11 @@
 # -*- coding: utf-8 -*-
-
-# Copyright (c) 2011, Yannick Hold-Geoffroy and Julien-Charles Lévesque on behalf of Université Laval
-# All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+# Copyright (c) 2011-2013, Julien-Charles Lévesque <levesque.jc@gmail.com>
+#  and contributors.
 #
-#    Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
-#    Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
-#    Neither the name of the Université Laval nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 'AS IS' AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-# THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
-# CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-# PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-# LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-# EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+# Distributed under the terms of the MIT license. See the COPYING file at
+#  the top-level directory of this project and at
+#  https://bitbucket.org/levesque/mipssim/raw/tip/COPYING
 
 import sys
 
@@ -210,6 +201,9 @@ class Simulator:
             #On place le comportement final du branchement dans le ROB.
             rob_entry.value = branch
             
+            #On communique le résultat du branchement à l'unité de branchement pour
+            #mettre à jour son modèle (si applicable)
+            func_unit.update(branch)
         elif func_unit.name[:-1] == 'Store':
             #Store pas exécuté à cette étape, mais on connaît maintenant sa destination.
             rob_entry.addr = func_unit.vk + func_unit.A #ne respecte pas la nomenclature Hennessy.
@@ -230,10 +224,14 @@ class Simulator:
                 value = func_unit.vj & func_unit.vk
             else:
                 raise Exception('Invalid operator.')
+                
+            result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
+            if result != value:
+                raise Exception('Mode avec exec ne fonctionne pas.')
+                
             rob_entry.value = value
 
         rob_entry.state = State.EXECUTE
-        return
 
     def resolve_operand(self, operand):
         '''
@@ -489,19 +487,17 @@ class Simulator:
                 # adresse du branchement
                 cur_funit.A = int(self.instructions[self.PC].operands[-1][1:])
                 
-                # Vrai si le branch va vers l'avant
-                forward_branch = cur_funit.A > int(self.PC)
+                # Demande la prédiction à notre unité de branchement (celle-ci doit définir
+                # la fonction get_prediction(pc, dest)
+                #Hennessy ne spécifie pas où placer la prédiction
+                cur_rob_entry.prediction = cur_funit.get_prediction(self.PC, cur_funit.A)
                 
-                if (self.RS['Branch'][0].spec_forward == 'taken' and forward_branch)\
-                  or (self.RS['Branch'][0].spec_backward == 'taken' and not forward_branch):
+                if cur_rob_entry.prediction == True:
                     #Prédiction d'un branchement pris.
-                    cur_rob_entry.prediction = True #Hennessy ne spécifie pas où placer la prédiction
                     self.new_PC = cur_funit.A
                 else:
                     #Prédiction d'un branchement non pris.
-                    cur_rob_entry.prediction = False
                     self.new_PC = int(self.PC + 1)
-
         else:
             # Aucune unité fonctionnelle libre trouvée ou bien plus de place dans le ROB
             # On est coincés comme des rats, on attend.
@@ -551,7 +547,6 @@ class Simulator:
             return i
         return -1
 
-
     def load_config(self, config_file):
         '''
         Initialise le simulateur en fonction de ce qui est défini dans le fichier XML
@@ -573,8 +568,7 @@ class Simulator:
         self.RS['Mult'] = create_functional_units(xml_data, 'Mult', 1, 1,
          additional_defaults={'div_latency': 1})
         self.RS['ALU'] = create_functional_units(xml_data, 'ALU', 1, 1)
-        self.RS['Branch'] = create_functional_units(xml_data, 'Branch', 1, 1,
-         additional_defaults={'spec_forward': 'not_taken', 'spec_backward': 'taken'})
+        self.RS['Branch'] = create_functional_units(xml_data, 'Branch', 1, 1)
 
         # Attribution des registres
         register_nodes = xml_data.getElementsByTagName('Registers')[0].childNodes
@@ -619,14 +613,25 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
     try:
         elements = xml_data.getElementsByTagName(name)[0]
         for k, v in elements._attrs.items():
-            fu_params(k, v.value)
-    except:
+            fu_params[k] = v.value
+    except IndexError as id:
         print('Aucune configuration trouvée pour les unités fonctionnelles de type %s.'
             % name)
-
+            
+    #Possibilité de mettre un champ 'class' dans le fichier de configuration XML
+    #On tentera alors d'aller chercher une classe avec ce nom dans le fichier components.py
+    if 'class' in fu_params:
+        cl = fu_params.pop('class')
+    elif name == 'Branch':
+        cl = 'BranchUnit'
+    else:
+        cl = 'FuncUnit'
+        
     #Générer les unités fonctionnelles
     n = fu_params.pop('n')
-    funits = [components.FuncUnit(name='%s%i'%(name, i+1), **fu_params) for i in range(n)]
+    funit_cl = components.__getattribute__(cl)
+    funits = [funit_cl(name='%s%i'%(name, i+1), **fu_params) for i in range(n)]
+        
     return funits
 
 

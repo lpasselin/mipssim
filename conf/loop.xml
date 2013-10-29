@@ -4,7 +4,7 @@
     <Store  number="3" latency="4"/>
     <Add    number="3" latency="2"/>
     <ALU    number="1" latency="1"/>
-    <Branch latency="1" spec_forward="nottaken" spec_backward="taken"/>
+    <Branch class="BranchUnit" forward_branch="nottaken" backward_branch="taken" latency="1"/>
   </FunctUnits>
   <Registers>
     <R1 value="192"/>
