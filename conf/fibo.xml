@@ -3,7 +3,7 @@
     <Load   number="1" latency="4"/>
     <Store  number="1" latency="8"/>
     <ALU    number="1" latency="1"/>
-    <Branch latency="1" spec_forward="nottaken" spec_backward="taken"/>
+    <Branch class="BranchUnit" forward_branch="nottaken" backward_branch="taken" latency="1"/>
   </FunctUnits>
   <Registers>
     <R1 value="0"/>

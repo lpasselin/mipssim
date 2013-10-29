@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2013, Julien-Charles Lévesque on behalf of Université Laval
-# All rights reserved.
+#
+# Copyright (c) 2011-2013, Julien-Charles Lévesque <levesque.jc@gmail.com>
+#  and contributors.
+#
+# Distributed under the terms of the MIT license. See the COPYING file at
+#  the top-level directory of this project and at
+#  https://bitbucket.org/levesque/mipssim/raw/tip/COPYING
+
 
 from collections import OrderedDict, namedtuple
 
@@ -124,10 +130,14 @@ class FuncUnit(object):
     '''
     def __init__(self, name, latency, **kwargs):
         self.name = name
-        self.latency = latency
+        self.latency = int(latency)
 
         #Assimilation automatique des autres paramètres
         for k, v in kwargs.items():
+            try:
+                v = int(v)
+            except:
+                pass
             self.__setattr__(k, v)
 
         self.reset()
@@ -154,6 +164,52 @@ class FuncUnit(object):
     def __repr__(self):
         #Won't preserve ordering.
         return str(self.__dict__)
+
+
+class BranchUnit(FuncUnit):
+    '''
+    Unité fonctionnelle de branchement. Ajoute une fonction spéciale `get_prediction` qui
+     retourne la prédiction d'un branchement.
+     
+    Pour votre projet, vous pourrez créer une nouvelle unité fonctionnelle de branchement et
+     l'utiliser à la place de celle-ci.
+    '''
+    def __init__(self, name, latency, forward_branch, backward_branch, **kwargs):
+        #Important: appel au constructeur de la classe de base.
+        super(BranchUnit, self).__init__(name, latency, **kwargs)
+        
+        self.forward_branch = forward_branch
+        self.backward_branch = backward_branch
+        
+    def get_prediction(self, PC, dest):
+        '''
+        Prédiction en fonction de la ligne courante, de la destination du branchement
+         et de quelconque information préservée par le prédicteur.
+        '''
+        
+        # Vrai si le branch va vers l'avant
+        is_forward_branch = dest > PC
+        
+        if (self.forward_branch == 'taken' and is_forward_branch)\
+          or (self.backward_branch == 'taken' and not is_forward_branch):
+            #Prédiction d'un branchement pris.
+            prediction = True
+        else:
+            #Prédiction d'un branchement non pris.
+            prediction = False
+            
+        #Stock la prédiction pour le moment ou il faudra ajuster le modèle.
+        self.prediction = prediction
+        
+        return prediction
+
+    def update(self, branch_taken):
+        '''
+        Met à jour le modèle interne de prédiction (si applicable) en fonction 
+         du résultat du branchement.
+        '''
+        #Le BranchUnit que nous utilison ne met pas à jour son modèle...
+        pass
 
 
 def check_valid_register(func):
