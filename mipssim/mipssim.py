@@ -25,9 +25,9 @@ import simulator as sim
 
 auteurs = ''
 
-def main(config_file, source_file, trace_file, debug):
+def main(config_file, source_file, trace_file, latex_trace_file, debug):
     # Génération du simulateur
-    simulator = sim.Simulator(config_file, source_file, trace_file, debug=debug)
+    simulator = sim.Simulator(config_file, source_file, trace_file, latex_trace_file, debug)
 
     # Affichage de l'état initial de la mémoire et des registre.
     print('État initial des registres: ' + str(simulator.regs))
@@ -50,14 +50,19 @@ def main(config_file, source_file, trace_file, debug):
     return err, simulator
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Simulateur de MIPS en Python (2.7+). Testé avec Python 2.7 et 3.3.')
+    parser = argparse.ArgumentParser(description='Simulateur de MIPS en Python (2.7+). Testé avec\
+ Python 2.7 et 3.3.', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('config_file', help='Fichier xml contenant la configuration du simulateur.')
-    parser.add_argument('source_file', help='Fichier contenant le code source à exécuter.')
-    parser.add_argument('trace_file', nargs='?', default='', help='Ficher dans lequel sera écrit l\'état du simulateur à tous les pas de temps.')
-    parser.add_argument('-t', default='t', dest='text_trace', help="Sauvegarde l'état du simulateur à chaque coup d'horloge dans un fichier texte." )
-    parser.add_argument('-d', default=False, action='store_true', dest='debug', help="Force l'impression de davantage d'information à chaque étape de l'exécution dans la ligne de commande.")
+    parser.add_argument('config_file', help="Fichier xml contenant la configuration du simulateur.")
+    parser.add_argument('source_file', help="Fichier contenant le code source à exécuter.")
+    parser.add_argument('trace_file', nargs='?', help="Ficher dans lequel sera écrit \
+l'état du simulateur à tous les pas de temps.")
+    parser.add_argument('-L', dest='latex_trace_file', help="Fichier pour écrire une trace sous \
+format LaTeX (surtout les tableaux).")
+    parser.add_argument('-d', default=False, action='store_true', dest='debug', help="Force \
+l'impression de davantage d'information à chaque étape de l'exécution dans la ligne de commande.")
 
     args = parser.parse_args()
 
-    err, simulator = main(args.config_file, args.source_file, args.trace_file, args.debug)
+    err, simulator = main(args.config_file, args.source_file, args.trace_file,
+        args.latex_trace_file, args.debug)
