@@ -27,7 +27,7 @@ class Simulator:
     Prends le code retourné par l'interpreteur et le fais exécuter sur la
     configuration entrée.
     '''
-    def __init__(self, config_file, source_file, trace_file='', trace_mode='t', debug=False):
+    def __init__(self, config_file, source_file, trace_file='', latex_trace_file='', debug=False):
         #Initialisation des variables membres
         self.clock = 0
         self.stall = False
@@ -46,13 +46,11 @@ class Simulator:
         self.instructions = interp.interpret_asm(source_file)
 
         #Setup du fichier de trace si applicable
-        if trace_file != '':
-            if trace_mode =='t':
-                self.trace = trace.TextTrace(trace_file)
-            elif trace_mode == 'l':
-                self.trace = trace.LaTeXTrace(trace_file)
-        else:
-            self.trace = None
+        self.trace = []
+        if trace_file:
+            self.trace.append(trace.TextTrace(trace_file))
+        if latex_trace_file:
+            self.trace.append(trace.LaTeXTrace(latex_trace_file))
 
     def go(self):
         '''
@@ -108,12 +106,13 @@ class Simulator:
             #Lance l'instruction à self.PC
             self.issue_instr()
 
+        for t in self.trace:
+            t.update(self)
+
         #Si l'exécution est terminée et le ROB est vide
         if self.PC + 1 >= len(self.instructions) and len(self.ROB) == 0:
             return 1
         else:
-            if self.trace:
-                self.trace.update(self)
             return 0
 
     def commit_instr(self):
