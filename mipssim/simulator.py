@@ -24,7 +24,7 @@ class Simulator:
     '''
     Simulateur d'exécution du MIPS.
 
-    Prends le code retourné par l'interpreteur et le fais exécuter sur la
+    Prends le code retourné par l'interpreteur et l'exécute sur la
     configuration entrée.
     '''
     def __init__(self, config_file, source_file, trace_file='', latex_trace_file='', debug=False):
@@ -79,8 +79,6 @@ class Simulator:
         n'est pas terminée.
         * Retourne 1 si l'opération s'est déroulée avec succès et l'exécution
         est terminée
-
-        Une exception est levée si l'exécution ne s'est pas déroulée avec succès.
         '''
         #Les opérations sont inversées pour éviter d'accomplir plusieurs actions sur une même
         # instruction dans un seul coup d'horloge.
@@ -169,8 +167,14 @@ class Simulator:
 
     def exec_instr(self, func_unit, rob_entry):
         '''
-        Termine l'exécution de l'instruction dans ´func_unit´, place les résultas aux bons
+        Termine l'exécution de l'instruction dans ´func_unit´. Place les résultats aux bons
          endroits.
+         
+        Paramètres:
+        -----------
+        
+        func_unit: Unité fonctionnelle dans laquelle l'instruction à compléter se trouve.
+        rob_entry: Entrée correspondante dans le ROB.
         '''
         instr = rob_entry.instr
         
@@ -214,15 +218,20 @@ class Simulator:
 
     def resolve_operand(self, operand):
         '''
-        Permet de transformer les variables du code MIPS en variables Python.
+        Résout une variables en code MIPS, celle-ci peut être convertie directement (immediate),
+         ou lue dans le registre correspondant (FXX/RXX). Si le registre est occupé, on retourne
+         un pointeur vers l'entrée du ROB qui produira cette valeur.
         '''
+        #Cas le plus simple, valeur immédiate
         if operand[0] == '#':
             value = int(operand[1:])
             rob_i = None
+        #Registre
         elif operand[0] in ['R', 'F']:
-            #si rob_i != None, la valeur dans value doit être invalidée, car on ne peut l'utiliser
+            #On vérifie si le registre attend après une autre instruction (on évite les WAR)
             rob_i = self.regs.stat[operand]
             value = self.regs[operand]
+            #Registre en attente, on met seulement un pointeur vers l'entrée ROB
             if rob_i != None:
                 rob_i = rob_i
                 value = None
@@ -231,6 +240,7 @@ class Simulator:
         return value, rob_i
         
     def resolve_memory_operand(self, operand):
+        '''Résout une opérande concernant un accès mémoire.'''
         reg_name = operand.split('(')[1].split(')')[0]
         mem_adr_value, rob_i = self.resolve_operand(reg_name)
         
@@ -240,6 +250,7 @@ class Simulator:
         return mem_imm, mem_adr_value, rob_i
 
     def reset_funits(self):
+        '''Remet toutes les unités fonctionnelles à leur état initial.'''
         for _, funit_type in self.RS.items():
             # Prendre une référence sur l'unité fonctionnelle qu'on analyse
             for funit in funit_type:
