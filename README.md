@@ -2,7 +2,13 @@
 
 Simulateur de code MIPS conçu pour le cours GIF-3000 à l'Université Laval. Testé avec Python 2.7 et 3.3.
 
-Pour vous servir du simulateur, il faut lancer le fichier `mipssim/mipssim.py` avec comme paramètres le nom d'un fichier de configuration (placés dans le dossier `conf/`) et d'un fichier de code assembleur (placés dans le dossier `asm/`). Le programme effectuera une simulation du code donné sur un microprocesseur avec une architecture MIPS paramétrisée par le contenu du fichier de configuration (nombre d'unités fonctionnelles, nombre de cycles pour exécuter les opérations à virgule flottante, etc.).
+Pour vous servir du simulateur, il faut lancer le fichier `mipssim/mipssim.py` avec comme paramètres le nom d'un fichier de configuration (placés dans le dossier `conf/`), suivi d'un fichier de code assembleur (placés dans le dossier `asm/`). Concrètement, l'interface est la suivante :  
+
+    :::text
+    usage: mipssim.py config_file source_file [trace_file]
+
+
+Le programme effectuera une simulation du code donné sur un microprocesseur avec une architecture MIPS paramétrisée par le contenu du fichier de configuration (nombre d'unités fonctionnelles, nombre de cycles pour exécuter les opérations à virgule flottante, etc.).
 
 Le simulateur imprimera l'état de la mémoire et des registres au début et à la fin de l'exécution. Pour avoir plus d'information, il faudra donner un troisième paramètre, soit un nom de fichier dans lequel déposer une *trace* de l'exécution. Ce fichier contiendra le contenu du tampon de réordonnancement, des stations de réservations et des registres à chaque cycle de la simulation. Exemple : 
 
@@ -50,15 +56,17 @@ Le simulateur imprimera l'état de la mémoire et des registres au début et à 
 
 Le module `simulator.py` est le module principal du simulateur. Une fois l'initialisation terminée, le simulateur contient une table de registres dans `self.regs`, un tampon de reordonnancement dans `self.ROB` et deux listes imbriquées contenant les stations de réservations dans `self.RS` (une première liste séparant les unités fonctionnelles par type, et dans chacune une autre liste).
 
-Les fonctions les plus importantes de la class `Simulator` sont les suivantes : 
+Les fonctions les plus importantes de la classe `Simulator` sont les suivantes : 
 
 * `go`: démarre la simulation, boucle tant que le programme n'est pas complètement exécuté.
 
-* `step`: fonction appelée à chaque itération dans la fonction `go`. Effectue les grandes actions dans la simulation, soit dans l'ordre:
-    * sanctionner l'instruction à la tête du ROB (`commit_instr`),
+* `step`: fonction appelée à chaque itération dans la fonction `go`. Exécute les grands blocs de la simulation dans l'ordre suivant :
+    * sanctionner l'instruction à la tête du ROB (fonction `commit_instr`),
     * décrémenter le temps dans les unités fonctionnelles en exécution et terminer leur exécution lorsqu'applicable (`decrement_time`),
     * incrémenter le *program counter* (PC) ou bien le mettre à la valeur précisée par un branchement précédent, puis lancer une nouvelle instruction (`issue_instr`)
     * terminer l'exécution si le PC pointe vers la dernière instruction et le ROB est vide.
+
+*N.B. : l'ordre des opérations est inversé pour ne pas lancer une instruction et l'exécuter dans le même cycle.
 
 * `load_config`: charge la configuration en mémoire et créé les éléments requis en fonction de ce qui est chargé. Par exemple, le nombre et le type des unités fonctionnelles varie selon ce qui est écrit dans la configuration et c'est cette fonction qui est en cause.
 
@@ -66,27 +74,33 @@ L'autre module qui sera important pour votre projet est le module `components.py
 
 ### Composantes
 
-Dans cette section, un peu d'information est fournie sur les composantes du simulateur. Il est bien possible que cette information ne vous soit pas directement utile, mais elle pourra vous aider développer une meilleure compréhension de la structure interne du simulateur.
+Dans cette section, un peu d'information est fournie sur les composantes du simulateur. Il est bien possible que cette information ne vous soit pas directement utile, mais elle pourra vous aider à développer une meilleure compréhension de la structure interne du simulateur.
 
-Les *registres* sont accessibles avec les opérateurs crochets et une string, par exemple : 
+La structure des *registres* est une classe encapsulant un dictionnaire de type `OrderedDict`. Tous les éléments de la mémoire sont accessibles avec les opérateurs crochets et une string, par exemple : 
 
+    :::python
     # Lecture
     F0 = self.regs['F0']
     # Écriture
     self.regs['F1'] = 8
+    
+Les registres contiennent également une deuxième liste (dans `regs.stat`) qui indique l'état de chaque registre. Si le champ d'un registre dans cette table contient une valeur, cela veut dire que le registre est occupé et en attente d'une valeur. Il ne faudra donc pas y écrire directement.
 
 Le *reorder buffer* est une tampon circulaire, donc il ne faut pas l'accéder directement. On itère sur celui-ci de la manière suivante : 
 
+    :::python
     for entry in self.ROB:
         # Vérification
 
 Pour accéder à la tête du ROB, on peut utiliser la variable `ROB.start`:
     
+    :::python
     head_entry = self.ROB[self.ROB.start]
     if head_entry.state == ... # etc.
 
-Finalement, les stations de réservations sont contenues dans deux listes imbriquées, plus précisément un OrderedDict contenant des listes.
+Finalement, les stations de réservations sont contenues dans deux listes imbriquées, plus précisément un `OrderedDict` contenant des listes.
 
+    :::python
     #Stations de réservation de type Load
     load_units = self.RS['Load']
     for l in load_units:
