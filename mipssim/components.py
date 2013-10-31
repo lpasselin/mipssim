@@ -291,22 +291,31 @@ class Memory(object):
     def __init__(self, mem_size, init_values):
         self.data = [0.0] * mem_size
         for i, v in enumerate(init_values):
-            self.data[i] = float(v)
+            self.data[i] = eval(v)
         
     def __repr__(self):
         '''Affiche le contenu de la mémoire.'''
         return ', '.join(['%s' % d for d in self.data])
 
-    def __getitem__(self, index):
+    def load(self, index, load_type):
         i = int(index / 8)
         if i - index / 8 > 1e-4:
             raise Exception('Indexation invalide de la mémoire (%i), doit être un multiple de 8' %
               index)
-        return self.data[i]
+
+        if load_type == 'float' and isinstance(self.data[i], float):
+            return self.data[i]
+        elif load_type == 'int' and isinstance(self.data[i], int):
+            return self.data[i]
+        else:
+            ld_instr = 'LD' if load_type == 'int' else 'L.D'
+            raise Exception("Incompatibilité pour %s. On lance une exception plutôt que \
+d'interpréter incorrectement une variable, ce qui produirait des bugs plus difficiles à tracer." %
+ ld_instr)
 
     def __setitem__(self, index, value):
         i = int(index / 8)
         if i - index / 8 > 1e-4:
             raise Exception('Indexation invalide de la mémoire (%i), doit être un multiple de 8' %
               index)
-        self.data[i] = float(value)
+        self.data[i] = value
