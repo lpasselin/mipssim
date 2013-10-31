@@ -207,9 +207,10 @@ class Simulator:
             #Store pas exécuté à cette étape, mais on connaît maintenant sa destination.
             rob_entry.addr = func_unit.vk + func_unit.A #ne respecte pas la nomenclature Hennessy.
         elif func_unit.name[:-1] == 'Load':
-            #Le load ne peut pas s'exécuter tant qu'il y a un store le précédent dans le ROB,
-            #donc rendu ici aucun problème.
-            rob_entry.value = self.mem[func_unit.A]
+            #Le load ne pouvait pas s'exécuter tant qu'un store le précédait dans le ROB,
+            #rendu ici, on est certain qu'il n'y aura pas de problème.
+            load_type = 'int' if instr.code == 'LD' else 'float'
+            rob_entry.value = self.mem.load(func_unit.A, load_type)
         else:    
             result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
             rob_entry.value = result
