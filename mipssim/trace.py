@@ -39,14 +39,14 @@ def rob_fix_row(row):
     return row
 
 def rs_fix_row(row):
-    if row[4] != '':
-        row[4] = '#' + str(int(row[4]) + 1)
     if row[5] != '':
         row[5] = '#' + str(int(row[5]) + 1)
     if row[6] != '':
         row[6] = '#' + str(int(row[6]) + 1)
+    if row[7] != '':
+        row[7] = '#' + str(int(row[7]) + 1)
     return row
-        
+
 def reg_fix_statrow(row):
     for i in range(1, len(row)):
         if row[i] != '' and row[i] != 'X':
@@ -66,21 +66,21 @@ class TextTrace:
     def update(self, simulator):
         '''
         Écrit l'état du ROB, des stations de reservation (des unités fonctionnelles) et de la
-         mémoire le fichier `self.trace_f` à chaque itération. 
+         mémoire le fichier `self.trace_f` à chaque itération.
         '''
         #Tampon de réordonnancement
-        
-        
+
+
         rob_table = PrettyTable(rob_labels)
         for rob_entry in simulator.ROB:
             row = get_vars_and_subvars(rob_variables, rob_entry)
             #quelques manipulations pour obtenir un résultat plus clair.
             row = rob_fix_row(row)
             rob_table.add_row(row)
-        
+
         #Table des stations de réservation
-        rs_variables = ['name', 'instr.code', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
-        rs_labels = ['Station', 'Op', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
+        rs_variables = ['name', 'instr.code', 'time', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
+        rs_labels = ['Station', 'Op', 'Temps', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
         rs_table = PrettyTable(rs_labels)
         for station_type, funits in simulator.RS.items():
             for i, funit in enumerate(funits):
@@ -104,12 +104,12 @@ class TextTrace:
                     for a in range(row_start, row_end)] + padding
                 reg_stat_row = reg_fix_statrow(reg_stat_row)
                 reg_table.add_row(reg_stat_row)
-                
+
                 reg_value_row = [reg_type + str(row_start)] +\
                     [simulator.regs[reg_type + str(a)] for a in range(row_start, row_end)] +\
                     padding
                 reg_table.add_row(reg_value_row)
-                
+
         # Affichage des tableaux précédemment créés
         self.trace_f.write('%s\n' % ('=' * 80))
         self.trace_f.write('Cycle: %d\n' % simulator.clock)
@@ -125,7 +125,7 @@ class TextTrace:
 class LaTeXTable:
     def __init__(self, caption, tab_label, first_row, align=[]):
         self.num_rows = len(first_row)
-        
+
         try:
             if len(align) == self.num_rows:
                 ali_str = ''.join(align)
@@ -146,7 +146,7 @@ $firstrow \\ \midrule
         row_str = '&'.join(row) + '\\\\ \n'
         row_str = row_str.replace('#', r'\#')
         self.string += row_str
-        
+
     def get_table(self):
         #fermer la table
         self.string += r'''
@@ -158,7 +158,7 @@ $firstrow \\ \midrule
 
 
 class LaTeXTrace:
-    
+
     '''
     Laisse une trace dans un fichier texte.
     '''
@@ -176,7 +176,7 @@ class LaTeXTrace:
     def update(self, simulator):
         '''
         Écrit l'état du ROB, des stations de reservation (des unités fonctionnelles) et de la
-         mémoire le fichier `self.trace_f` à chaque itération. 
+         mémoire le fichier `self.trace_f` à chaque itération.
         '''
         #Tampon de réordonnancement
         rob_variables = ['i', 'instr.code', 'instr.operands', 'state', 'dest', 'value']
@@ -186,7 +186,7 @@ class LaTeXTrace:
             row = get_vars_and_subvars(rob_variables, rob_entry)
             row = rob_fix_row(row)
             rob_table.add_row(row)
-        
+
         #Table des stations de réservation
         rs_variables = ['name', 'instr.code', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
         rs_labels = ['Station', 'Op', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
@@ -214,12 +214,12 @@ class LaTeXTrace:
                     for a in range(row_start, row_end)] + padding
                 reg_stat_row = reg_fix_statrow(reg_stat_row)
                 reg_table.add_row(reg_stat_row)
-                
+
                 reg_value_row = [reg_type + str(row_start)] +\
                     [str(simulator.regs[reg_type + str(a)]) for a in range(row_start, row_end)] +\
                     padding
                 reg_table.add_row(reg_value_row)
-                
+
         # Affichage des tableaux précédemment créés
         self.trace_f.write(r'\hrule \vspace{0.5cm}' + '\n')
         self.trace_f.write('Cycle: %d\n \n' % simulator.clock)
