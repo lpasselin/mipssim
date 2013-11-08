@@ -82,28 +82,29 @@ class Simulator:
         '''
         #Les opérations sont inversées pour éviter d'accomplir plusieurs actions sur une même
         # instruction dans un seul coup d'horloge.
-        
+
         #On sanctionne l'instruction via le ROB ( Premier élément de celui-ci )
         self.commit_instr()
 
         #Décrémentation du temps sur les unités fonctionnelles
         self.decrement_time()
-        
+
         # Gestion des bulles et de la fin du programme
         if self.stall == True or (self.new_PC == None and self.PC + 1 == len(self.instructions)) \
           or self.new_PC == len(self.instructions):
             print('Aucune instruction lancée (clock: %i).' % self.clock)
-        else:            
+        else:
             #Avancement du Issue/Program Counter (PC)
             if self.new_PC != None: #Si branchement
                 self.PC = self.new_PC
             else:
                 self.PC = self.PC + 1
             self.new_PC = None
-            
+
             #Lance l'instruction à self.PC
             self.issue_instr()
 
+        #Mise à jour de la trace
         for t in self.trace:
             t.update(self)
 
@@ -124,7 +125,7 @@ class Simulator:
             cur_rob_entry = self.ROB[rob_idx]
             if self.debug:
                 print('Sanctionnement: %s' % cur_rob_entry)
-            
+
             if cur_rob_entry.dest != None:
                 self.regs[cur_rob_entry.dest] = cur_rob_entry.value
                 #Si cette instruction était la seule (ou la dernière) à devoir écrire dans le ROB,
@@ -146,10 +147,10 @@ class Simulator:
                     else:
                         #On retourne à l'instruction suivant le branchement
                         self.new_PC = rob_head.instr.addr + 1
-                    
+
                     #Flush le ROB
                     self.ROB.reset()
-    
+
                     #Remet les drapeaux d'écriture des registres à None
                     self.regs.reset_stat()
 
@@ -169,15 +170,15 @@ class Simulator:
         '''
         Termine l'exécution de l'instruction dans ´func_unit´. Place les résultats aux bons
          endroits.
-         
+
         Paramètres:
         -----------
-        
+
         func_unit: Unité fonctionnelle dans laquelle l'instruction à compléter se trouve.
         rob_entry: Entrée correspondante dans le ROB.
         '''
         instr = rob_entry.instr
-        
+
         if func_unit.name[:-1] == 'Branch':
             #Déterminer si le branchement est pris.
             branch = False
@@ -199,7 +200,7 @@ class Simulator:
                 raise Exception('Instruction de branchement inconnue.')
             #On place le comportement final du branchement dans le ROB.
             rob_entry.value = branch
-            
+
             #On communique le résultat du branchement à l'unité de branchement pour
             #mettre à jour son modèle (si applicable)
             func_unit.update(branch)
@@ -211,7 +212,7 @@ class Simulator:
             #rendu ici, on est certain qu'il n'y aura pas de problème.
             load_type = 'int' if instr.code == 'LD' else 'float'
             rob_entry.value = self.mem.load(func_unit.A, load_type)
-        else:    
+        else:
             result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
             rob_entry.value = result
 
@@ -239,12 +240,12 @@ class Simulator:
         else:
             raise Exception('Opérande invalide.')
         return value, rob_i
-        
+
     def resolve_memory_operand(self, operand):
         '''Résout une opérande concernant un accès mémoire.'''
         reg_name = operand.split('(')[1].split(')')[0]
         mem_adr_value, rob_i = self.resolve_operand(reg_name)
-        
+
         #décalage immédiat de l'adresse: IMM(RX)
         mem_imm = int(operand.split('(')[0])
 
@@ -306,12 +307,14 @@ class Simulator:
                             # Writeback Tomasulo, écriture de l'instruction sur le CDB et mise à
                             # jour des stations de réservation
                             self.writeback_tomasulo(funit, funit.dest, exec_rob_entry.value)
-                            
+
                             # Reset de l'unité fonctionnelle
                             funit.reset()
                         # Sinon, simplement la décrémenter de 1
                         else:
                             funit.time -= 1
+                            #L'unité est en train de s'exécuter, donc on l'indique.
+                            self.ROB[funit.dest].state = State.EXECUTE
 
         #Seconde passe, tenter de démarrer l'exécution des unités fonctionnelles en attente d'opérandes.
         for i, (unit_type, units) in enumerate(self.RS.items()):
@@ -330,6 +333,7 @@ class Simulator:
                                 funit.time = funit.div_latency
                         else:
                             funit.time = funit.latency
+
 
     def issue_instr(self):
         '''
@@ -354,7 +358,7 @@ class Simulator:
         if funit_idx > -1 and self.ROB.check_free_entry():
             cur_funit = func_unit_type_ref[funit_idx]
             cur_funit.reset()
-            
+
             if self.debug:
                 print('Lance l\'instruction :', cur_instruction)
 
@@ -397,7 +401,7 @@ class Simulator:
                     cur_funit.A = mem_imm
                 else:
                     value, rob_i = self.resolve_operand(raw_operand)
-                    
+
                 #Si nous n'avons pas encore la valeur de cette opérande
                 if rob_i is not None:
                     waiting_op_rob = self.ROB[rob_i]
@@ -413,7 +417,7 @@ class Simulator:
                 #Sinon value contiendra une donnée valide et prête à utiliser.
                 else:
                     value_ready = True
-                
+
                 if first_operand:
                     if value_ready:
                         cur_funit.vj = value
@@ -429,7 +433,7 @@ class Simulator:
                         #que le numéro de registre directement
                         cur_funit.qk = value
                 first_operand = False
-            
+
             if cur_funit.qj == None and cur_funit.qk == None:
                 # On part l'exécution
                 # Exception pour l'unité fonctionnelle Mult
@@ -468,12 +472,12 @@ class Simulator:
             if self.instructions[self.PC].funit == 'Branch':
                 # adresse du branchement
                 cur_funit.A = int(self.instructions[self.PC].operands[-1][1:])
-                
+
                 # Demande la prédiction à notre unité de branchement (celle-ci doit définir
                 # la fonction get_prediction(pc, dest)
                 #Hennessy ne spécifie pas où placer la prédiction
                 cur_rob_entry.prediction = cur_funit.get_prediction(self.PC, cur_funit.A)
-                
+
                 #Prédiction d'un branchement pris.
                 if cur_rob_entry.prediction == True:
                     self.new_PC = cur_funit.A
@@ -485,7 +489,7 @@ class Simulator:
 
     def writeback_tomasulo(self, wb_funit, wb_rob_entry_idx, value=None):
         '''
-        Une fois l'exécution d'une instruction terminée, il est possible de placer sa valeur 
+        Une fois l'exécution d'une instruction terminée, il est possible de placer sa valeur
          sur le CDB et donc de mettre à jour les unités fonctionnelles attendant cette valeur.
         '''
         rob_entry = self.ROB[wb_rob_entry_idx]
@@ -587,7 +591,7 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
     fu_params = {}
     fu_params.update(additional_defaults)
     #Les paramètres par défaut vont être écrasés.
-    fu_params['n'] = default_n
+    fu_params['number'] = default_n
     fu_params['latency'] = default_latency
 
     try:
@@ -597,7 +601,7 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
     except IndexError as id:
         print('Aucune configuration trouvée pour les unités fonctionnelles de type %s.'
             % name)
-            
+
     #Possibilité de mettre un champ 'class' dans le fichier de configuration XML
     #On tentera alors d'aller chercher une classe avec ce nom dans le fichier components.py
     if 'class' in fu_params:
@@ -606,12 +610,12 @@ def create_functional_units(xml_data, name, default_n, default_latency, addition
         cl = 'BranchUnit'
     else:
         cl = 'FuncUnit'
-        
+
     #Générer les unités fonctionnelles
-    n = fu_params.pop('n')
+    n = int(fu_params.pop('number'))
     funit_cl = components.__getattribute__(cl)
     funits = [funit_cl(name='%s%i'%(name, i+1), **fu_params) for i in range(n)]
-        
+
     return funits
 
 
