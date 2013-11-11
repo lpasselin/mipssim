@@ -90,9 +90,11 @@ class Simulator:
         self.decrement_time()
 
         # Gestion des bulles et de la fin du programme
-        if self.stall == True or (self.new_PC == None and self.PC + 1 == len(self.instructions)) \
-          or self.new_PC == len(self.instructions):
+        if self.stall == True or (self.new_PC == None and self.PC + 1 == len(self.instructions)):
             print('Aucune instruction lancée (clock: %i).' % self.clock)
+        elif self.new_PC == len(self.instructions):
+            #Le programme va terminer son exécution dès que le ROB sera vide.
+            self.PC = self.new_PC
         else:
             #Avancement du Issue/Program Counter (PC)
             if self.new_PC != None: #Si branchement
