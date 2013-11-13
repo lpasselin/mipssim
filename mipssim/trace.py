@@ -16,6 +16,9 @@ rob_states = ['Unused', 'Issue', 'Execute', 'Writeback', 'Commit']
 rob_variables = ['i', 'instr.code', 'instr.operands', 'state', 'dest', 'value']
 rob_labels = ['Entrée', 'Instruction', '', 'État', 'Dest.', 'Valeur']
 
+rs_variables = ['name', 'instr.code', 'time', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
+rs_labels = ['Station', 'Op', 'Temps', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
+
 def get_vars_and_subvars(var_names, extractee   ):
     row = []
     for v in var_names:
@@ -79,8 +82,6 @@ class TextTrace:
             rob_table.add_row(row)
 
         #Table des stations de réservation
-        rs_variables = ['name', 'instr.code', 'time', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
-        rs_labels = ['Station', 'Op', 'Temps', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
         rs_table = PrettyTable(rs_labels)
         for station_type, funits in simulator.RS.items():
             for i, funit in enumerate(funits):
@@ -136,8 +137,10 @@ class LaTeXTable:
 
         self.string = Template(r'''
 \begin{center}
-%\caption{$caption}
-%\label{tab:$label}
+$caption
+
+
+%$label
     \begin{tabular}{$align} \toprule
 $firstrow \\ \midrule
 ''').substitute(caption=caption, label=tab_label, align=ali_str, firstrow='&'.join(first_row))
@@ -165,6 +168,10 @@ class LaTeXTrace:
     def __init__(self, trace_file):
         self.trace_f = open(trace_file, 'w')
         self.trace_f.write(r'''\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
 \usepackage{booktabs}
 \begin{document}
 ''')
@@ -179,8 +186,6 @@ class LaTeXTrace:
          mémoire le fichier `self.trace_f` à chaque itération.
         '''
         #Tampon de réordonnancement
-        rob_variables = ['i', 'instr.code', 'instr.operands', 'state', 'dest', 'value']
-        rob_labels = ['Entrée', 'Instruction', '', 'État', 'Dest.', 'Valeur']
         rob_table = LaTeXTable('Tampon de réordonnancement','cycle%i_rob' % simulator.clock, rob_labels)
         for rob_entry in simulator.ROB:
             row = get_vars_and_subvars(rob_variables, rob_entry)
@@ -188,8 +193,6 @@ class LaTeXTrace:
             rob_table.add_row(row)
 
         #Table des stations de réservation
-        rs_variables = ['name', 'instr.code', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
-        rs_labels = ['Station', 'Op', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
         rs_table = LaTeXTable('Stations de réservation', 'cycle%i_rs' % simulator.clock, rs_labels)
         for station_type, funits in simulator.RS.items():
             for i, funit in enumerate(funits):
