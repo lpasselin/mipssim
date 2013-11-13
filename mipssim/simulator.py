@@ -29,7 +29,7 @@ class Simulator:
     '''
     def __init__(self, config_file, source_file, trace_file='', latex_trace_file='', debug=False):
         #Initialisation des variables membres
-        self.clock = 0
+        self.clock = 1
         self.stall = False
         self.new_PC = None
         self.ROB = components.ROB(maxlen=24)
@@ -199,7 +199,7 @@ class Simulator:
             elif instr.code == 'J':
                 branch = True
             else:
-                raise Exception('Instruction de branchement inconnue.')
+                raise Exception('Instruction de branchement inconnue (%s).' % (instr.code))
             #On place le comportement final du branchement dans le ROB.
             rob_entry.value = branch
 
@@ -212,7 +212,12 @@ class Simulator:
         elif func_unit.name[:-1] == 'Load':
             #Le load ne pouvait pas s'exécuter tant qu'un store le précédait dans le ROB,
             #rendu ici, on est certain qu'il n'y aura pas de problème.
-            load_type = 'int' if instr.code == 'LD' else 'float'
+            if instr.code == 'LD':
+                load_type = 'int'
+            elif instr.code == 'L.D':
+                load_type = 'float'
+            else:
+                raise Exception('Instruction Load inconnue (%s).' % (instr.code))
             rob_entry.value = self.mem.load(func_unit.A, load_type)
         else:
             result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
