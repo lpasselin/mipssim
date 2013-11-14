@@ -328,15 +328,6 @@ class Simulator:
         #Vérifie si une unité fonctionnelle du type requis est libre
         funit_idx = self.find_funit(func_unit_ref, cur_instruction.funit_type)
 
-        #Tester si un branch n'est pas déjà dans le ROB, le cas échéant ne pas lancer
-        # de spéculation multiple
-        if cur_instruction.funit_type == 'Branch':
-            for entry in self.ROB:
-                if entry.instr.funit_type == 'Branch':
-                    self.stall = True
-                    self.new_PC = self.PC
-                    return
-
         # Attribuer l'opération à une station de réservation si possible
         if funit_idx > -1 and self.ROB.check_free_entry():
             cur_funit = func_unit_ref[funit_idx]
