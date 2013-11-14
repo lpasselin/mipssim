@@ -121,21 +121,25 @@ class Simulator:
         Sanctionne les opérations dont le calcul est terminé dans l'ordre de lancement.
         Seule l'instruction à la tête du ROB peut être sanctionnée.
         '''
-        rob_idx = self.ROB.start
-        rob_head = self.ROB[rob_idx]
-        if len(self.ROB) > 0 and rob_head.state == State.WRITE and rob_head.ready:
-            cur_rob_entry = self.ROB[rob_idx]
-            if self.debug:
-                print('Sanctionnement: %s' % cur_rob_entry)
+        rob_head = self.ROB[self.ROB.start]
 
-            if cur_rob_entry.dest != None:
-                self.regs[cur_rob_entry.dest] = cur_rob_entry.value
+        #Petit hack pour pouvoir visualiser la dernière entrée à avoir été sanctionnée
+        if rob_head.state == State.COMMIT:
+            self.ROB.free_head_entry()
+            rob_head = self.ROB[self.ROB.start]
+
+        if len(self.ROB) > 0 and rob_head.state == State.WRITE and rob_head.ready:
+            if self.debug:
+                print('Sanctionnement: %s' % rob_head)
+
+            if rob_head.dest != None:
+                self.regs[rob_head.dest] = rob_head.value
                 #Si cette instruction était la seule (ou la dernière) à devoir écrire dans le ROB,
                 #effacer le marqueur à cet effet dans regs.stat
-                if self.regs.stat[cur_rob_entry.dest] != None:
-                     dest_i = self.regs.stat[cur_rob_entry.dest]
-                     if dest_i == rob_idx:
-                         self.regs.stat[cur_rob_entry.dest] = None
+                if self.regs.stat[rob_head.dest] != None:
+                     dest_i = self.regs.stat[rob_head.dest]
+                     if dest_i == rob_head.i:
+                         self.regs.stat[rob_head.dest] = None
 
             # Gestion des branchs lors du sanctionnement
             if rob_head.instr.funit_type == 'Branch':
@@ -158,6 +162,7 @@ class Simulator:
 
                     #Clean les stations de réservation
                     self.reset_funits()
+                    return
                 else:
                     # Spéculation réussite, aucun changement requis.
                     pass
@@ -166,7 +171,8 @@ class Simulator:
                 self.mem[rob_head.addr] = rob_head.value
 
             # Une fois l'instruction sanctionnée, la retirer du ROB
-            self.ROB.free_head_entry()
+            rob_head.state = State.COMMIT
+            #self.ROB.free_head_entry()
 
     def exec_instr(self, func_unit, rob_entry):
         '''
