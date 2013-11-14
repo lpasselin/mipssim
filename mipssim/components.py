@@ -23,7 +23,7 @@ funit: nom de l'unité fonctionnelle exécutant ce type d'instruction
 action: type d'action réalisé par l'instruction sous forme mathématique
 operands: opérandes de l'instruction (nombre varie selon l'instruction)
 '''
-Instruction = namedtuple('Instruction', ['addr', 'code', 'funit', 'action', 'operands', 'operator'])
+Instruction = namedtuple('Instruction', ['addr', 'code', 'funit_type', 'action', 'operands', 'operator'])
 
 #Enumération pour les états des instructions dans le ROB
 class State:
@@ -43,6 +43,8 @@ class ROBEntry(object):
         self.dest = dest
         self.value = value
         self.ready = False
+        self.funit = None
+        self.addr = None #Used for stores...
 
     def free(self):
         self.ready = False
@@ -50,9 +52,11 @@ class ROBEntry(object):
         self.dest = None
         self.value = None
         self.instr = None
+        self.funit = None
+        self.addr = None
 
     def __repr__(self):
-        #Won't preserve ordering.
+        #Won't preserve ordering, strictly for debugging purposes.
         return str(self.__dict__)
 
 
@@ -100,7 +104,7 @@ class ROB(object):
 
     def __getitem__(self, index):
         return self.entries[index]
-        
+
     def __iter__(self):
         i = self.start
         while i != self.end:
@@ -170,26 +174,26 @@ class BranchUnit(FuncUnit):
     '''
     Unité fonctionnelle de branchement. Ajoute une fonction spéciale `get_prediction` qui
      retourne la prédiction d'un branchement.
-     
+
     Pour votre projet, vous pourrez créer une nouvelle unité fonctionnelle de branchement et
      l'utiliser à la place de celle-ci.
     '''
     def __init__(self, name, latency, forward_branch, backward_branch, **kwargs):
         #Important: appel au constructeur de la classe de base.
         super(BranchUnit, self).__init__(name, latency, **kwargs)
-        
+
         self.forward_branch = forward_branch
         self.backward_branch = backward_branch
-        
+
     def get_prediction(self, PC, dest):
         '''
         Prédiction en fonction de la ligne courante, de la destination du branchement
          et de quelconque information préservée par le prédicteur.
         '''
-        
+
         # Vrai si le branch va vers l'avant
         is_forward_branch = dest > PC
-        
+
         if (self.forward_branch == 'taken' and is_forward_branch)\
           or (self.backward_branch == 'taken' and not is_forward_branch):
             #Prédiction d'un branchement pris.
@@ -197,15 +201,15 @@ class BranchUnit(FuncUnit):
         else:
             #Prédiction d'un branchement non pris.
             prediction = False
-            
+
         #Stock la prédiction pour le moment ou il faudra ajuster le modèle.
         self.prediction = prediction
-        
+
         return prediction
 
     def update(self, branch_taken):
         '''
-        Met à jour le modèle interne de prédiction (si applicable) en fonction 
+        Met à jour le modèle interne de prédiction (si applicable) en fonction
          du résultat du branchement.
         '''
         #Le BranchUnit que nous utilison ne met pas à jour son modèle...
@@ -233,18 +237,18 @@ class Registers(OrderedDict):
     def __init__(self):
         '''Initialisation des registres.'''
         super(Registers, self).__init__(self)
-        
+
         self.stat = OrderedDict() #Copie servant uniquement à savoir si un registre est utilisé
         #ou non, requis pour annuler des instructions en cas de branchement tout en permettant
         #d'écrire dans les registres aux commits.
-        
+
         #Remplissage des registres
         names = ['R%i' % (i) for i in range(NUM_REGISTERS)] + ['F%i' % (i) for i in range(16)]
         for n in names:
             #Bypass les vérifications pour pouvoir assigner 0 au registre R0
             self.__setitem__(n, 0, bypass=True)
             self.stat[n] = None
-            
+
     def reset_stat(self):
         for k, v in self.stat.items():
             self.stat[k] = None
@@ -292,7 +296,7 @@ class Memory(object):
         self.data = [0.0] * mem_size
         for i, v in enumerate(init_values):
             self.data[i] = eval(v)
-        
+
     def __repr__(self):
         '''Affiche le contenu de la mémoire.'''
         return ', '.join(['%s' % d for d in self.data])

@@ -84,7 +84,7 @@ class Simulator:
         # instruction dans un seul coup d'horloge.
 
         #On sanctionne l'instruction via le ROB ( Premier élément de celui-ci )
-        self.commit_instr()
+        self.commit()
 
         #Décrémentation du temps sur les unités fonctionnelles
         self.decrement_time()
@@ -104,7 +104,7 @@ class Simulator:
             self.new_PC = None
 
             #Lance l'instruction à self.PC
-            self.issue_instr()
+            self.issue()
 
         #Mise à jour de la trace
         for t in self.trace:
@@ -116,7 +116,7 @@ class Simulator:
         else:
             return 0
 
-    def commit_instr(self):
+    def commit(self):
         '''
         Sanctionne les opérations dont le calcul est terminé dans l'ordre de lancement.
         Seule l'instruction à la tête du ROB peut être sanctionnée.
@@ -138,7 +138,7 @@ class Simulator:
                          self.regs.stat[cur_rob_entry.dest] = None
 
             # Gestion des branchs lors du sanctionnement
-            if rob_head.instr.funit == 'Branch':
+            if rob_head.instr.funit_type == 'Branch':
                 self.stall = False
                 if (rob_head.prediction != rob_head.value):
                     # Mauvaise spéculation
@@ -161,7 +161,7 @@ class Simulator:
                 else:
                     # Spéculation réussite, aucun changement requis.
                     pass
-            elif rob_head.instr.funit == 'Store':
+            elif rob_head.instr.funit_type == 'Store':
                 #On écrit le résultat en mémoire.
                 self.mem[rob_head.addr] = rob_head.value
 
@@ -207,8 +207,9 @@ class Simulator:
             #mettre à jour son modèle (si applicable)
             func_unit.update(branch)
         elif func_unit.name[:-1] == 'Store':
-            #Store pas exécuté à cette étape, mais on connaît maintenant sa destination.
-            rob_entry.addr = func_unit.vk + func_unit.A #ne respecte pas la nomenclature Hennessy.
+            #On a calculé la destination du Store au début de son exécution, reste donc rien à faire
+            #pour cette étape.
+            pass
         elif func_unit.name[:-1] == 'Load':
             #Le load ne pouvait pas s'exécuter tant qu'un store le précédait dans le ROB,
             #rendu ici, on est certain qu'il n'y aura pas de problème.
@@ -290,33 +291,18 @@ class Simulator:
                         #Si on passe de 0 à -1, l'unité redevient disponible et le résultat est
                         # écrit (Write de Tomasulo)
                         if funit.time < 1:
-                            #Le load se fait en deux étapes (voir p. 233 Hennesssy, Execute)
-                            if funit.name[:-1] == 'Load' and funit.vj is not None:
-                                #Il ne doit pas y avoir de store précédant le load dans le ROB
-                                store = False
-                                for e in self.ROB:
-                                    #Arrivé à l'instruction courante, cesse de parcourir le ROB
-                                    if e.i == funit.dest:
-                                        break
-                                    if e.instr.funit == 'Store':
-                                        store = True
-                                if not store:
-                                    funit.A = funit.vj + funit.A
-                                    funit.vj = None
-                                else:
-                                    #Sinon il faut attendre pour commencer le Load
-                                    continue
-
                             #Calcule le résultat
                             exec_rob_entry = self.ROB[funit.dest]
                             self.exec_instr(funit, exec_rob_entry)
 
                             # Writeback Tomasulo, écriture de l'instruction sur le CDB et mise à
                             # jour des stations de réservation
-                            self.writeback_tomasulo(funit, funit.dest, exec_rob_entry.value)
+                            success = self.writeback_tomasulo(funit, funit.dest, exec_rob_entry.value)
+                            if success:
+                                funit.reset()
+                            #Le writeback peut échouer dans le cas d'un Store... on va réessayer au
+                            #prochain coup d'horloge.
 
-                            # Reset de l'unité fonctionnelle
-                            funit.reset()
                         # Sinon, simplement la décrémenter de 1
                         else:
                             funit.time -= 1
@@ -330,40 +316,30 @@ class Simulator:
                 # la passe précédente :
                 if funit.busy and not updated[i][j]:
                     # Si l'unité fonctionnelle n'est pas démarrée (temps = None), vérifier si on peut la partir
-                    if funit.time == None and funit.qj == None and funit.qk == None:
-                        # On part l'exécution
-                        # Exception pour l'unité fonctionnelle Mult
-                        if unit_type == 'Mult':
-                            if funit.instr.action.find('*') > -1:
-                                funit.time = funit.latency
-                            else:
-                                funit.time = funit.div_latency
-                        else:
-                            funit.time = funit.latency
+                    self.start_exec(funit, self.ROB[funit.dest])
 
-
-    def issue_instr(self):
+    def issue(self):
         '''
         Ajouter une instruction dans le ROB pendant son calcul par une unité fonctionelle.
         '''
         #Référence vers le conteneur pour toutes les unités fonctionnelles du type courant
         cur_instruction = self.instructions[self.PC]
-        func_unit_type_ref = self.RS[cur_instruction.funit]
+        func_unit_ref = self.RS[cur_instruction.funit_type]
         #Vérifie si une unité fonctionnelle du type requis est libre
-        funit_idx = self.find_funit(func_unit_type_ref, cur_instruction.funit)
+        funit_idx = self.find_funit(func_unit_ref, cur_instruction.funit_type)
 
         #Tester si un branch n'est pas déjà dans le ROB, le cas échéant ne pas lancer
         # de spéculation multiple
-        if cur_instruction.funit == 'Branch':
+        if cur_instruction.funit_type == 'Branch':
             for entry in self.ROB:
-                if entry.instr.funit == 'Branch':
+                if entry.instr.funit_type == 'Branch':
                     self.stall = True
                     self.new_PC = self.PC
                     return
 
         # Attribuer l'opération à une station de réservation si possible
         if funit_idx > -1 and self.ROB.check_free_entry():
-            cur_funit = func_unit_type_ref[funit_idx]
+            cur_funit = func_unit_ref[funit_idx]
             cur_funit.reset()
 
             if self.debug:
@@ -374,14 +350,15 @@ class Simulator:
             cur_rob_entry.instr = cur_instruction
             cur_rob_entry.state = State.ISSUE
             cur_rob_entry.ready = False
+            cur_rob_entry.funit = cur_funit.name
 
             #Occuper l'unité fonctionnelle
             cur_funit.occupy(cur_instruction)
 
             # Vérifier les paramètres des opérations voir s'ils vont dans le vj/vk ou qj/qk
-            if cur_instruction.funit == 'Store':
+            if cur_instruction.funit_type == 'Store':
                 to_check = [0, 1]
-            elif cur_instruction.funit == 'Branch':
+            elif cur_instruction.funit_type == 'Branch':
                 if cur_instruction.code in ['BEQZ', 'BNEZ']:
                     to_check = [0]
                 elif cur_instruction.code in ['BEQ', 'BNE']:
@@ -441,26 +418,18 @@ class Simulator:
                         cur_funit.qk = value
                 first_operand = False
 
-            if cur_funit.qj == None and cur_funit.qk == None:
-                # On part l'exécution
-                # Exception pour l'unité fonctionnelle Mult
-                if cur_instruction.funit == 'Mult':
-                    if cur_instruction.action.find('*') > -1:
-                        cur_funit.time = cur_funit.latency
-                    else:
-                        cur_funit.time = cur_funit.div_latency
-                else:
-                    cur_funit.time = cur_funit.latency
+            #Tente de démarrer l'exécution (elle ne débutera réellement qu'au prochain appel
+            # à decrement_time)
+            self.start_exec(cur_funit, cur_rob_entry)
 
             # Trouver le paramètre de destination, qui est l'inverse des paramètres d'entrée (sauf pour le Branch)
             destination = [a for a in range(len(self.instructions[self.PC].operands)) if a not in to_check]
             # Si l'opération est un branch, aucune destination à analyser - c'est un label.
             # Si aucune destination trouvée, i.e. un Store ou  Branch, mettre à None
-            if len(destination) > 0 and self.instructions[self.PC].funit != 'Branch':
+            if len(destination) > 0 and self.instructions[self.PC].funit_type != 'Branch':
                 destination = destination[0]
             else:
                 destination = None
-
 
             # Mettre une référence dans la destination, soit #ROB
             if destination is not None:
@@ -476,7 +445,7 @@ class Simulator:
                 print('Debug: cur_funit: ', cur_funit)
 
             # Gestion des branchs / Spéculation
-            if self.instructions[self.PC].funit == 'Branch':
+            if self.instructions[self.PC].funit_type == 'Branch':
                 # adresse du branchement
                 cur_funit.A = int(self.instructions[self.PC].operands[-1][1:])
 
@@ -494,6 +463,66 @@ class Simulator:
             # On est coincés comme des rats, on attend.
             self.new_PC = self.PC
 
+    def start_exec(self, funit, rob_e):
+        '''
+        Démarre l'exécution d'une instruction. Retournera True si l'instruction s'est bien
+         démarrée, ou False sinon.
+        '''
+        instr = funit.instr
+
+        #On vérifie les conditions pour le démarrage de l'exécution
+        ready = False
+        if instr.funit_type == 'Store':
+            #Le Store n'a besoin que du Qk pour démarrer son exécution
+            if funit.qk == None:
+                ready = True
+                #Calcule automatiquement l'addresse.
+                if funit.vk != None:
+                    funit.A = funit.vk + funit.A
+                    rob_e.addr = funit.A
+                    funit.vk = None
+        elif instr.funit_type == 'Load':
+            #On calcule la première étape du Load immédiatement
+            if funit.qj == None:
+                #N'exécuter ce bloc qu'une seule fois.
+                if funit.vj != None:
+                    funit.A = funit.vj + funit.A
+                    funit.vj = None
+            else:
+                #Pas prêt pour l'exécution
+                return False
+
+            wait_for_store = False
+            for e in self.ROB:
+                #Arrivé à l'instruction courante, cesse de parcourir le ROB
+                if e.i == funit.dest:
+                    break
+                if e.instr.funit_type == 'Store':
+                    #Convention différente pour stocker l'addresse de destination, car le Store
+                    #lit l'addresse mémoire après que l'unité fonctionnelle ait été relâchée.
+                    #Si on ne sait pas où va écrire le Store ou s'il va écrire à la même adr
+                    if e.addr == None or e.addr == funit.A:
+                        wait_for_store = True
+                        break
+            if not wait_for_store:
+                ready = True
+        else:
+            if funit.qj == None and funit.qk == None:
+                ready = True
+
+        #Démarre l'exécution si les conditions sont rencontrées.
+        if ready:
+            if instr.funit_type == 'Mult':
+                #Temps d'exécution différents pour multiplication et division
+                if instr.action.find('*') > -1:
+                    funit.time = funit.latency
+                else:
+                    funit.time = funit.div_latency
+            else:
+                funit.time = funit.latency
+            return True
+        return False
+
     def writeback_tomasulo(self, wb_funit, wb_rob_entry_idx, value=None):
         '''
         Une fois l'exécution d'une instruction terminée, il est possible de placer sa valeur
@@ -501,23 +530,22 @@ class Simulator:
         '''
         rob_entry = self.ROB[wb_rob_entry_idx]
         #Le Store procède différemment
-        if wb_funit.name[:-1] == 'Store':
+        if wb_funit.instr.funit_type == 'Store':
             if wb_funit.qj == None: #Différent de la convention d'Hennessy... pas dramatique.
                 rob_entry.value = wb_funit.vj
             else:
-                raise Exception('Not sure we should get there.')
+                #Store pas prêt pour Writeback.
+                return False
         else:
             for _, funit_type in self.RS.items():
                 for funit in funit_type:
-                    #Mise à jour requise uniquement lorsque l'unité est occupée
-                    # et attend après ses paramètres.
-                    if funit.busy and funit.time == None:
-                        if funit.qj is not None and funit.qj == wb_rob_entry_idx:
-                            funit.vj = value
-                            funit.qj = None
-                        if funit.qk is not None and funit.qk == wb_rob_entry_idx:
-                            funit.vk = value
-                            funit.qk = None
+                    #Mise à jour requise uniquement lorsque l'unité attend ses paramètres.
+                    if funit.qj == wb_rob_entry_idx:
+                        funit.vj = value
+                        funit.qj = None
+                    if funit.qk == wb_rob_entry_idx:
+                        funit.vk = value
+                        funit.qk = None
             rob_entry.value = value
 
         #Writeback complété
@@ -525,6 +553,7 @@ class Simulator:
         rob_entry.state = State.WRITE
         #Libère l'unité fonctionnelle
         wb_funit.reset()
+        return True
 
     def find_funit(self, funits, name):
         '''
