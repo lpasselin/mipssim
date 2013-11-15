@@ -14,10 +14,12 @@ from output.prettytable import PrettyTable
 noneify = lambda x: x if x != None else ''
 rob_states = ['Unused', 'Issue', 'Execute', 'Writeback', 'Commit']
 rob_variables = ['i', 'instr.code', 'instr.operands', 'state', 'dest', 'value']
-rob_labels = ['Entrée', 'Instruction', '', 'État', 'Dest.', 'Valeur']
+#rob_labels = ['Entrée', 'Instruction', '', 'État', 'Dest.', 'Valeur']
+rob_labels = ['Entry', 'Instruction', '', 'State', 'Dest.', 'Value']
 
 rs_variables = ['name', 'instr.code', 'time', 'vj', 'vk', 'qj', 'qk', 'dest', 'A']
-rs_labels = ['Station', 'Op', 'Temps', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
+#rs_labels = ['Station', 'Op', 'Temps', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
+rs_labels = ['Station', 'Op', 'Time', 'Vj', 'Vk', 'Qj', 'Qk', 'Dest', 'A']
 
 def get_vars_and_subvars(var_names, extractee   ):
     row = []
@@ -115,10 +117,11 @@ class TextTrace:
         self.trace_f.write('%s\n' % ('=' * 80))
         self.trace_f.write('Cycle: %d\n' % simulator.clock)
         self.trace_f.write('Program Counter : %d\n' % simulator.PC)
-        self.trace_f.write('Stations de réservation:\n%s\n' % str(rs_table))
+        #self.trace_f.write('Stations de réservation:\n%s\n' % str(rs_table))
+        self.trace_f.write('Reservation stations:\n%s\n' % str(rs_table))
         self.trace_f.write('ROB: \n%s\n' % str(rob_table))
-        self.trace_f.write('Registres: \n%s\n' % (reg_table))
-
+        #self.trace_f.write('Registres: \n%s\n' % (reg_table))
+        self.trace_f.write('Registers: \n%s\n' % (reg_table))
 
         self.trace_f.flush()
 
