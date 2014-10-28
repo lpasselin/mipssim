@@ -62,12 +62,13 @@ def interpret_asm(source_file):
 
     # Retrait des caractères de fin de ligne et des commentaires
     source = list(map(lambda x: x.strip().split(';')[0], source))
-    print(source)
+    source = [s for s in source if s != '']
+    #print(source)
 
     # Gestion des labels. Après cette opération, les labels sont
     # enlevés de la source
     source, labels = parse_labels(source)
-    print(source)
+    #print(source)
 
     # Mapping des opérations dans la table en haut du fichier.
     # Retourne une liste de tuple [(instruction_reference, parametres), ...]

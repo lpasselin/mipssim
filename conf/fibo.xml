@@ -1,8 +1,8 @@
 <MIPSSim>
   <FunctUnits>
-    <Load   number="1" latency="4"/>
-    <Store  number="1" latency="8"/>
-    <ALU    number="1" latency="1"/>
+    <Load   number="2" latency="4"/>
+    <Store  number="2" latency="8"/>
+    <ALU    number="4" latency="1"/>
     <Branch class="BranchUnit" forward_branch="nottaken" backward_branch="taken" latency="1"/>
   </FunctUnits>
   <Registers>
