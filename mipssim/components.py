@@ -7,13 +7,11 @@
 #  the top-level directory of this project and at
 #  https://bitbucket.org/levesque/mipssim/raw/tip/COPYING
 
+import re
 
 from collections import OrderedDict, namedtuple
 
-#16 registres c'est suffisant pour les exemples nous intéressant.
-#Normalement, c'est 32, mais ça ne fait que réduire la lisibilité des
-#traces.
-NUM_REGISTERS = 16
+NUM_FP_REGISTERS = 32
 
 '''Instruction: tuple nommé contenant les champs importants représentant une instruction.
 Paramètres:
@@ -219,16 +217,50 @@ class BranchUnit(FuncUnit):
 def check_valid_register(func):
     '''
     Décorateur s'assurant que les registres accédés sont valides.
+    On se simplifie la vie en wrappant seulement un try autour de l'appel.
     '''
     def function_handling(*args, **kwargs):
-        temp = args[1]
-        if temp[0] not in ['R', 'F'] or int(temp[1:]) not in range(0, NUM_REGISTERS):
-            raise SimulationException('Accès à un registre non valide: %s.' % args[1])
-        else:
-            return func(*args, **kwargs)
+        try:
+            out = func(*args, **kwargs)
+        except Exception as e:
+            raise Exception('Accès à un registre non valide: %s. Exception python : %s' % (args[1], e))
+        return out
     return function_handling
 
 
+reg_list = [
+'$zero', #Always zero
+'$at', #Reserved for assembler
+'$v0', '$v1', #First and second return values, respectively
+'$a0', '$a1', '$a2', '$a3', #First four arguments to functions
+'$t0', '$t1', '$t2', '$t3',
+'$t4', '$t5', '$t6', '$t7', #Temporary registers
+'$s0', '$s1', '$s2', '$s3',
+'$s4', '$s5', '$s6', '$s7', #Saved registers
+'$t8', '$t9', #More temporary registers
+'$k0', '$k1', #Reserved for kernel (operating system)
+'$gp', #Global pointer
+'$sp', #Stack pointer
+'$fp', #Frame pointer
+'$ra' #Return address
+]
+reg_map = {name:'$%i' % num for num, name in enumerate(reg_list)}
+
+
+class RegisterMap(OrderedDict):
+    #Nécessaire seulement pour mapper les $XX vers les variantes alphanum
+    def __getitem__(self, item):
+        if reg_re.match(item): #match seulement registre int en forme num $XX
+            item = reg_list[int(item[1:])]
+        return super().__getitem__(item)
+
+    def __setitem__(self, item, value):
+        if reg_re.match(item):
+            item = reg_list[int(item[1:])]
+        super().__setitem__(item, value)
+
+fp_reg_re = re.compile('\$f\d+')
+reg_re = re.compile('\$\d+')
 class Registers(OrderedDict):
     '''
     Système de registres du MIPS simulé. Utilisable comme un dictionnaire ordonné. Nous ajoutons
@@ -236,14 +268,14 @@ class Registers(OrderedDict):
     '''
     def __init__(self):
         '''Initialisation des registres.'''
-        super(Registers, self).__init__(self)
+        super().__init__()
 
-        self.stat = OrderedDict() #Copie servant uniquement à savoir si un registre est utilisé
+        self.stat = RegisterMap() #Copie servant uniquement à savoir si un registre est utilisé
         #ou non, requis pour annuler des instructions en cas de branchement tout en permettant
         #d'écrire dans les registres aux commits.
 
         #Remplissage des registres
-        names = ['R%i' % (i) for i in range(NUM_REGISTERS)] + ['F%i' % (i) for i in range(16)]
+        names = reg_list + ['$f%i' % (i) for i in range(NUM_FP_REGISTERS)]
         for n in names:
             #Bypass les vérifications pour pouvoir assigner 0 au registre R0
             self.__setitem__(n, 0, bypass=True)
@@ -259,33 +291,35 @@ class Registers(OrderedDict):
 
     @check_valid_register
     def __getitem__(self, item):
-        return super(Registers, self).__getitem__(item)
+        #Convertir les registres INT $XX en leur variante longue alphanum
+        if reg_re.match(item): #match seulement registre int en forme num $XX
+            item = reg_list[int(item[1:])]
+        return super().__getitem__(item)
 
     @check_valid_register
     def __setitem__(self, item, value, bypass=False):
         '''
         Assigne les valeurs des registres.
         '''
+        #Convertir les registres INT $XX en leur variante longue alphanum
+        if reg_re.match(item):
+            item = reg_list[int(item[1:])]
+
         # Capturer un essai d'écriture sur R0
-        if not bypass and item == 'R0':
-            raise Exception('Impossible d\'utiliser R0, ce '
-                                      'registre est une constante.')
+        if item in ['$zero'] and not bypass:
+            raise Exception("Impossible d'utiliser $zero, ce "
+                                "registre est une constante.")
 
-        # Assigner la valeur au registre, le valider en entier si RX et en
-        # fraction si FX
-        try:
-            # ROB entry
-            if isinstance(value, str) and value[0] == '#':
-                #ne pas transformer la variable.
-                pass
-            elif item[0] == 'R':
-                value = int(value)
-            else:
-                value = float(value)
-        except:
-            raise Exception('Valeur à assigner invalide: %s' % value)
+        # ROB entry
+        if isinstance(value, str) and value[0] == '#':
+            #ne pas transformer la variable.
+            pass
+        elif fp_reg_re.match(item): #registre fp
+            value = float(value)
+        else: #registre entier
+            value = int(value)
 
-        super(Registers, self).__setitem__(item, value)
+        super().__setitem__(item, value)
 
 
 class Memory(object):

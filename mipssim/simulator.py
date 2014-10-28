@@ -43,7 +43,7 @@ class Simulator:
 
         #Lecture de la configuration et du code source à exécuter
         self.load_config(config_file)
-        self.instructions = interp.interpret_asm(source_file)
+        self.instructions = interp.interpret_asm(self, source_file)
 
         #Setup du fichier de trace si applicable
         self.trace = []
@@ -186,7 +186,7 @@ class Simulator:
         '''
         instr = rob_entry.instr
 
-        if func_unit.name[:-1] == 'Branch':
+        if instr.funit_type == 'Branch':
             #Déterminer si le branchement est pris.
             branch = False
             if instr.code == 'BEQ':
@@ -211,20 +211,27 @@ class Simulator:
             #On communique le résultat du branchement à l'unité de branchement pour
             #mettre à jour son modèle (si applicable)
             func_unit.update(branch)
-        elif func_unit.name[:-1] == 'Store':
+        elif instr.funit_type == 'Store':
             #On a calculé la destination du Store au début de son exécution, reste donc rien à faire
             #pour cette étape.
             pass
-        elif func_unit.name[:-1] == 'Load':
+        elif instr.funit_type == 'Load':
             #Le load ne pouvait pas s'exécuter tant qu'un store le précédait dans le ROB,
             #rendu ici, on est certain qu'il n'y aura pas de problème.
             if instr.code == 'LD':
                 load_type = 'int'
             elif instr.code == 'L.D':
                 load_type = 'float'
+            elif instr.code == 'LW':
+                load_type = 'int'
             else:
                 raise Exception('Instruction Load inconnue (%s).' % (instr.code))
             rob_entry.value = self.mem.load(func_unit.A, load_type)
+        elif instr.funit_type == 'Move':
+            rob_entry.value = func_unit.vj
+        elif instr.funit_type == 'Nop':
+            #No operation.
+            pass
         else:
             result = eval('%s %s %s' % (func_unit.vj, instr.operator, func_unit.vk))
             rob_entry.value = result
@@ -238,11 +245,13 @@ class Simulator:
          un pointeur vers l'entrée du ROB qui produira cette valeur.
         '''
         #Cas le plus simple, valeur immédiate
-        if operand[0] == '#':
-            value = int(operand[1:])
+        #Nous n'utilisons plus le symbole #, car tout chiffre seul
+        #est traité comme une valeur immédiate.
+        if operand[0] != '$':
+            value = int(operand)
             rob_i = None
-        #Registre
-        elif operand[0] in ['R', 'F']:
+        #Registre, will deprecate this form.
+        elif operand[0] == '$':
             #On vérifie si le registre attend après une autre instruction (on évite les WAR)
             rob_i = self.regs.stat[operand]
             value = self.regs[operand]
@@ -574,9 +583,9 @@ class Simulator:
             print('Lecture du fichier de configuration %s en cours...' % config_file)
             xml_data = parse(config_file)
             print('Fichier de configuration lu avec succès.')
-        except:
+        except Exception as e:
             raise Exception('Impossible d\'utiliser le fichier de configuration '
-                'XML.')
+                'XML. %s' % e)
 
         self.RS['Load'] = create_functional_units(xml_data, 'Load', 1, 1)
         self.RS['Store'] = create_functional_units(xml_data, 'Store', 1, 1)
@@ -584,13 +593,15 @@ class Simulator:
         self.RS['Mult'] = create_functional_units(xml_data, 'Mult', 1, 1,
          additional_defaults={'div_latency': 1})
         self.RS['ALU'] = create_functional_units(xml_data, 'ALU', 1, 1)
+        self.RS['Move'] = create_functional_units(xml_data, 'Move', 1, 1)
         self.RS['Branch'] = create_functional_units(xml_data, 'Branch', 1, 1)
+        self.RS['Nop'] = create_functional_units(xml_data, 'Nop', 1, 1)
 
         # Attribution des registres
         register_nodes = xml_data.getElementsByTagName('Registers')[0].childNodes
         register_nodes = zip(register_nodes[::2], register_nodes[1::2])
         for a in register_nodes:
-            name = a[1].tagName
+            name = '$' + a[1].tagName
             value = a[1]._attrs['value'].value
             self.regs[name] = value
 
