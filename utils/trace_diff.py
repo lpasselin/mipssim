@@ -18,7 +18,7 @@ from collections import OrderedDict as OD
 
 def find_table_type(lines, i):
     '''Remonte ligne par ligne à partir de `i` pour trouver le type du tableau.'''
-    
+
     #On regarde le caractère de début de ligne.
     while lines[i][0] in ['|', '+']:
         #La fin de l'entête
@@ -34,10 +34,10 @@ def find_table_type(lines, i):
         table_type = 'ROB'
     elif header_line.find('Registres') != -1:
         table_type = 'Registres'
-        
+
     return table_type, header_line.strip(':\n')
-   
-    
+
+
 def find_next_cycle(lines):
     '''Générateur pour parcourir un fichier de trace par coup d'horloge. Retourne l'indice de chq
      ligne débutant par "Cycle:" '''
@@ -46,13 +46,13 @@ def find_next_cycle(lines):
         if lines[i].find('Cycle:') != -1:
             yield i
         i += 1
-    
+
 
 def get_table(lines, i):
-    '''Extrait une table débutant à la ligne i et retourne un pointeur vers la ligne à la fin 
+    '''Extrait une table débutant à la ligne i et retourne un pointeur vers la ligne à la fin
      de la dite table. La table est stoquée dans un ordered dict avec une entrée par ligne.'''
     headers = [h.strip() for h in lines[i + 1][1:-2].split('|')]
-    
+
     table = OD()
     table['headers'] = headers
     i = i + 3
@@ -61,8 +61,8 @@ def get_table(lines, i):
         table[elements[0]] = elements[1:]
         i += 1
     return table, i + 1
-    
-    
+
+
 def parse_trace(lines):
     '''
     Reconstruit des tableaux à partir d'une trace textuelle.
@@ -90,8 +90,8 @@ def compare_dicts(d1, d2):
         if key1 != key2:
             same = False
             #Peut se produire dans le cas d'entrées différentes se trouvant dans le ROB.
-            import IPython; IPython.embed()
-            
+            #import IPython; IPython.embed()
+
         if isinstance(val1, OD) or isinstance(val1, dict):
             sub_same, sub_diffs = compare_dicts(val1, val2)
             if sub_same != True:
@@ -114,7 +114,7 @@ def compare_dicts(d1, d2):
                 same = False
                 diffs.append([key1, (val1, val2)])
     return same, diffs
-            
+
 
 def main(file_1, file_2):
 
@@ -123,7 +123,7 @@ def main(file_1, file_2):
 
     f1_lines = f1.readlines()
     f2_lines = f2.readlines()
-    
+
     simulation1 = parse_trace(f1_lines)
     simulation2 = parse_trace(f2_lines)
 
@@ -145,5 +145,5 @@ if __name__ == '__main__':
     parser.add_argument('file_2', help='Second fichier.')
 
     args = parser.parse_args()
-    
+
     sim1, sim2, diffs = main(args.file_1, args.file_2)

@@ -170,9 +170,8 @@ class Simulator:
                 #On écrit le résultat en mémoire.
                 self.mem[rob_head.addr] = rob_head.value
 
-            # Une fois l'instruction sanctionnée, la retirer du ROB
+            # Une fois l'instruction sanctionnée, on la conserve pendant un coup d'horloge
             rob_head.state = State.COMMIT
-            #self.ROB.free_head_entry()
 
     def exec_instr(self, func_unit, rob_entry):
         '''
