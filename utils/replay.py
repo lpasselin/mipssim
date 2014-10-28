@@ -4,7 +4,7 @@
 #
 # Distributed under the terms of the MIT license. See the COPYING file at
 #  the top-level directory of this project and at
-#  https://bitbucket.org/levesque/mipssim/raw/tip/COPYING
+#  https://bitbucket.org/ulaval-gif-3000/mipssim/raw/tip/COPYING
 
 import sys
 
