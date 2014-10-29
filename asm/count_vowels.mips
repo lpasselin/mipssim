@@ -8,6 +8,7 @@
         ;R3 adresse de départ de la chaîne, R4 adresse de fin
         ;R5 adresse où écrire le résultat
 Loop:   LD      R2,0(R3)        ; Lire caractère i
+        BEQ     R2,R0,End       ; Fin de la chaîne
         BEQ     R2,R10,Vowel
         BEQ     R2,R11,Vowel
         BEQ     R2,R12,Vowel
@@ -17,5 +18,5 @@ Loop:   LD      R2,0(R3)        ; Lire caractère i
         J       NotVow
 Vowel:  DADDIU  R1,R1,#1
 NotVow: DADDIU  R3,R3,#8
-        BNE     R3,R4,Loop      ; Branch jusqu'à ce qu'on arrive à la fin de la chaîne
-        SD      R1,0(R5)        ; Ecrire résultat après la chaîne
+        J       Loop            ; Jusqu'à ce qu'on arrive à la fin de la chaîne
+End:    SD      R1,0(R5)        ; Ecrire résultat après la chaîne
